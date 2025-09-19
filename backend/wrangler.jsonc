@@ -3,9 +3,10 @@
   "name": "backend",
   "main": "src/index.ts",
   "compatibility_date": "2025-09-15"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
+  // Variables de entorno requeridas:
+  // DATABASE_URL: URL de conexión a PostgreSQL
+  // JWT_SECRET: Secreto para firmar tokens JWT
+  
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },

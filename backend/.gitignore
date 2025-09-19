@@ -29,6 +29,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# test files
+test-auth.js
+test-*.js
+
 # misc
 .DS_Store
 
