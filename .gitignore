@@ -6,3 +6,4 @@ dist
 *.log
 config.h
 .env.dev
+TODO.md

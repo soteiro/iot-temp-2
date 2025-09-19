@@ -7,10 +7,44 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DIRECT_DATABASE_URL")  // ✅ Para migraciones en Neon
 }
 
 
+model User {
+  user_id    String   @id @default(uuid())
+  email      String   @unique @db.VarChar(255)
+  password   String   @db.VarChar(255)  // Hasheada
+  name       String?  @db.VarChar(100)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  
+  // Relación con dispositivos
+  devices    Device[]
+  
+  @@map("users")
+}
+model Device {
+  device_id     String   @id @default(uuid())
+  name          String   @db.VarChar(100)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  // 🔐 Autenticación
+  api_key       String   @unique @db.VarChar(255)  // Key para identificar device
+  api_secret    String   @db.VarChar(255)          // Secret hasheado para autenticar
+  is_active     Boolean  @default(true)
+  last_seen     DateTime?
+  
+  // 👤 Relación con usuario
+  user_id       String?
+  user          User?    @relation(fields: [user_id], references: [user_id])
+  
+  // 📊 Relación con datos de sensores
+  sensorData    SensorData[]
+  
+  @@map("devices")
+}
 
 model SensorData {
   id          Int      @id @default(autoincrement())
@@ -18,5 +52,13 @@ model SensorData {
   humidity    Float
   timestamp   DateTime @default(now())
   
+  // 🔗 Relación con dispositivo
+  device_id   String?
+  device      Device?  @relation(fields: [device_id], references: [device_id])
+  
+  // 📈 Índices para consultas frecuentes
+  @@index([device_id])
+  @@index([timestamp])
+  @@index([device_id, timestamp])
   @@map("sensor_data")
 }
