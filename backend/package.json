@@ -10,10 +10,14 @@
     "@prisma/adapter-neon": "^6.16.2",
     "@prisma/client": "^6.16.2",
     "@prisma/extension-accelerate": "^2.0.2",
-    "hono": "^4.9.7"
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.2",
+    "hono": "^4.9.7",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250913.0",
+    "@types/bcryptjs": "^3.0.0",
     "prisma": "^6.16.2",
     "wrangler": "^4.4.0"
   }
