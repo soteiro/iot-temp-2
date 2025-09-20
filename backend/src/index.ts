@@ -1,9 +1,8 @@
 import { Hono } from 'hono'
 import { PrismaClient } from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
-import { argon2d } from 'argon2'
-import { MiddlewareHandler } from 'hono'
-import { authenticateUser } from './lib/auth'
+import { decode, sign, verify } from 'hono/jwt'
+import { authenticateUser, authenticateDevice } from './lib/auth'
 import bcrypt from 'bcryptjs'
 
 // Definir la interfaz para las variables de entorno
@@ -49,7 +48,7 @@ app.post('/register', async (c)=> {
       data: {
         email,
         password: hashedPassword,
-        name // TODO: Hashear la contraseña
+        name 
       }
     })
 
@@ -59,6 +58,51 @@ app.post('/register', async (c)=> {
   } catch (error: any) {
     console.error('Error registering user:', error);
     return c.json({ error: 'Failed to register user: ' + error.message }, 500);
+  }
+})
+
+//login with email and password
+app.post('/login', async (c)=>{
+  try {
+    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+    const body = await c.req.json();
+    const { email, password } = body;
+
+    if(!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email }
+    })
+
+    if (!user) {
+      return c.json({ error: 'Invalid email or password' }, 401);
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return c.json({ error: 'Invalid email or password' }, 401);
+    }
+
+    const expiredIn = 60 * 60
+    const now = Math.floor(Date.now() / 1000);
+
+    const token = await sign({
+      sub: user.user_id,
+      name: user.name,
+      email:user.email,
+      exp: now + expiredIn
+    },
+      c.env.JWT_SECRET
+    )
+
+    const { password: _, ...userWithoutPassword } = user;
+    return c.json({token, user: userWithoutPassword});
+
+  } catch (error: any) {
+    console.error('Error logging in:', error);
+    return c.json({ error: 'Failed to login: ' + error.message }, 500);
   }
 })
 
@@ -133,5 +177,6 @@ app.get('/stats', async (c) => {
     return c.json({ error: 'Failed to fetch stats' }, 500);
   }
 });
+
 
 export default app
