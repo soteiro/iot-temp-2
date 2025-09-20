@@ -23,11 +23,15 @@ export const authenticateDevice = async (c: Context, next: Next) => {
     const device = await prisma.device.findFirst({
         where: {
             api_key: apiKey,
-            api_secret: apiSecret
+            api_secret: apiSecret,
         }
     });
     if (!device) {
         return c.json({ error: "Invalid API credentials" }, 403);
+    }
+    
+    if (!device.is_active){
+        return c.json({ error: "Device is inactive" }, 403);
     }
 
     c.set("device", device);

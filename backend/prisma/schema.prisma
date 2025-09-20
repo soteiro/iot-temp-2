@@ -37,8 +37,8 @@ model Device {
   last_seen     DateTime?
   
   // 👤 Relación con usuario
-  user_id       String?
-  user          User?    @relation(fields: [user_id], references: [user_id])
+  user_id       String
+  user          User   @relation(fields: [user_id], references: [user_id])
   
   // 📊 Relación con datos de sensores
   sensorData    SensorData[]

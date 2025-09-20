@@ -1,11 +1,12 @@
 # Backend IoT API - Cloudflare Workers
 
-API para Internet de las Cosas (IoT) construida con Cloudflare Workers, Hono.js y Neon PostgreSQL para recolección de datos de sensores de temperatura y humedad.
+API para Internet de las Cosas (IoT) construida con Cloudflare Workers, Hono.js y Neon PostgreSQL. Permite recolección de datos de sensores, autenticación de dispositivos y usuarios, gestión de dispositivos y usuarios, y estadísticas avanzadas.
 
 ## 🏗️ Arquitectura
 
 ```bash
-Dispositivo IoT → API (Cloudflare Workers) → Adapter Neon → Neon PostgreSQL
+Dispositivo IoT → API (Cloudflare Workers + Hono.js) → Prisma Adapter Neon → Neon PostgreSQL
+Usuario → API (Cloudflare Workers) → Prisma Adapter Neon → Neon PostgreSQL
 ```
 
 ### Tecnologías utilizadas
@@ -15,6 +16,8 @@ Dispositivo IoT → API (Cloudflare Workers) → Adapter Neon → Neon PostgreSQ
 - **Base de datos:** Neon PostgreSQL
 - **ORM:** Prisma con adapter directo a Neon
 - **Lenguaje:** TypeScript
+- **Validación:** Zod
+- **Autenticación:** JWT (usuarios) y API Key/Secret (dispositivos)
 
 ## 📁 Estructura del Proyecto
 
@@ -51,7 +54,8 @@ pnpm install
 Crea un archivo `.env` en la raíz del proyecto:
 
 ```env
-DATABASE_URL="postgresql://username:password@host/database"
+DIRECT_DATABASE_URL="postgresql://username:password@host/database"
+JWT_SECRET="tu_secreto_super_seguro"
 ```
 
 ### 3. Configurar la base de datos
@@ -80,47 +84,71 @@ pnpm cf-typegen
 pnpm prisma generate    # Generar cliente
 pnpm prisma migrate dev # Ejecutar migraciones
 pnpm prisma studio      # Abrir Prisma Studio
+pnpm prisma db push     # Sincronizar schema sin migración
 ```
 
 ## 📡 API Endpoints
 
-### `POST /data`
+### Autenticación de Usuarios
 
-Enviar datos del sensor
+#### `POST /register`
+Registrar usuario nuevo
+**Body:** `{ email, password, name }`
+**Response:** `{ user }`
 
-**Request Body:**
+#### `POST /login`
+Login de usuario
+**Body:** `{ email, password }`
+**Response:** `{ token, user }`
 
+### Autenticación de Dispositivos
+
+Todos los endpoints de dispositivos requieren los headers:
+`X-API-Key` y `X-API-Secret`
+
+#### `POST /devices/register`
+Registrar nuevo dispositivo
+**Body:** `{ name, user_id? }`
+**Response:** `{ api_key, api_secret }`
+
+#### `GET /devices`
+Listar dispositivos del usuario
+
+#### `PUT /devices/:id`
+Actualizar dispositivo
+
+#### `DELETE /devices/:id`
+Eliminar dispositivo
+
+### Datos de Sensores
+
+#### `POST /data`
+Enviar datos del sensor (requiere autenticación de dispositivo)
+**Body:**
 ```json
 {
   "temperature": 25.5,
   "humidity": 60.2
 }
 ```
-
 **Response:**
-
 ```json
 {
-  "message": "Data saved successfully",
+  "success": true,
   "data": {
     "id": 1,
     "temperature": 25.5,
     "humidity": 60.2,
-    "timestamp": "2024-09-16T10:30:00.000Z"
+    "device_id": "uuid",
+    "timestamp": "2025-09-20T10:30:00.000Z"
   }
 }
 ```
 
-### `GET /data`
-
-Obtener todos los datos de sensores
-
-**Query Parameters:**
-
-- `limit` (opcional): Número de registros a obtener (por defecto: 100)
-
+#### `GET /data`
+Obtener datos de sensores
+**Query:** `limit`, `device_id` (opcional)
 **Response:**
-
 ```json
 {
   "data": [
@@ -128,40 +156,74 @@ Obtener todos los datos de sensores
       "id": 1,
       "temperature": 25.5,
       "humidity": 60.2,
-      "timestamp": "2024-09-16T10:30:00.000Z"
+      "device_id": "uuid",
+      "timestamp": "2025-09-20T10:30:00.000Z"
     }
   ]
 }
 ```
 
-### `GET /stats`
+#### `GET /data/my`
+Obtener datos de todos los dispositivos del usuario autenticado
 
-Obtener estadísticas básicas
+### Estadísticas
 
+#### `GET /stats`
+Obtener estadísticas globales
 **Response:**
-
 ```json
 {
-  "total": 150,
-  "avgTemperature": 24.8,
-  "avgHumidity": 58.5,
-  "latest": {
-    "temperature": 25.5,
-    "humidity": 60.2,
-    "timestamp": "2024-09-16T10:30:00.000Z"
+  "stats": {
+    "_count": 150,
+    "_avg": { "temperature": 24.8, "humidity": 58.5 },
+    "_max": { "temperature": 27.1, "humidity": 65.2 },
+    "_min": { "temperature": 22.0, "humidity": 54.0 }
   }
 }
 ```
 
+#### `GET /stats?device_id=uuid`
+Estadísticas de un dispositivo específico
+
+#### `GET /stats/my`
+Estadísticas de todos los dispositivos del usuario autenticado
+
 ## 🗄️ Esquema de Base de Datos
 
 ```prisma
+model User {
+  user_id    String   @id @default(uuid())
+  email      String   @unique @db.VarChar(255)
+  password   String   @db.VarChar(255)
+  name       String?  @db.VarChar(100)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  devices    Device[]
+  @@map("users")
+}
+
+model Device {
+  device_id     String   @id @default(uuid())
+  name          String   @db.VarChar(100)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  api_key       String   @unique @db.VarChar(255)
+  api_secret    String   @db.VarChar(255)
+  is_active     Boolean  @default(true)
+  last_seen     DateTime?
+  user_id       String?
+  user          User?    @relation(fields: [user_id], references: [user_id])
+  sensorData    SensorData[]
+  @@map("devices")
+}
+
 model SensorData {
   id          Int      @id @default(autoincrement())
   temperature Float
   humidity    Float
   timestamp   DateTime @default(now())
-
+  device_id   String?
+  device      Device?  @relation(fields: [device_id], references: [device_id])
   @@map("sensor_data")
 }
 ```
@@ -172,7 +234,8 @@ model SensorData {
 
 ```typescript
 export interface Env {
-  DATABASE_URL: string
+  DIRECT_DATABASE_URL: string;
+  JWT_SECRET: string;
 }
 
 const app = new Hono<{ Bindings: Env }>()
@@ -184,15 +247,77 @@ El proyecto utiliza `@prisma/adapter-neon` para conexión directa a Neon Postgre
 
 ```typescript
 import { PrismaNeon } from '@prisma/adapter-neon'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client/edge'
 
-const adapter = new PrismaNeon({ connectionString: c.env.DATABASE_URL })
-const prisma = new PrismaClient({ adapter })
+function getPrisma(connectionString: string) {
+  const adapter = new PrismaNeon({ connectionString });
+  return new PrismaClient({ adapter });
+}
 ```
 
-## 📚 Documentación Adicional
+### Ejemplo de Middleware de Autenticación de Dispositivo
 
-Para información detallada sobre errores comunes, soluciones y proceso de desarrollo completo, consulta [`DOCUMENTATION.md`](./DOCUMENTATION.md).
+```typescript
+import { Context, Next } from 'hono';
+import { PrismaClient } from '@prisma/client/edge';
+import { PrismaNeon } from '@prisma/adapter-neon';
+
+function getPrisma(connectionString: string) {
+  const adapter = new PrismaNeon({ connectionString });
+  return new PrismaClient({ adapter });
+}
+
+export const authenticateDevice = async (c: Context, next: Next) => {
+  const apiKey = c.req.header("X-API-Key");
+  const apiSecret = c.req.header("X-API-Secret");
+
+  if (!apiKey || !apiSecret) {
+    return c.json({ error: "Missing API credentials" }, 401);
+  }
+
+  const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+  const device = await prisma.device.findFirst({
+    where: {
+      api_key: apiKey,
+      api_secret: apiSecret
+    }
+  });
+  if (!device) {
+    return c.json({ error: "Invalid API credentials" }, 403);
+  }
+
+  c.set("device", device);
+  await next();
+};
+```
+
+### Ejemplo de Middleware de Autenticación de Usuario (JWT)
+
+```typescript
+import { verify } from 'hono/jwt';
+
+export const authenticateUser = async (c: Context, next: Next) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ error: "Missing or invalid Authorization header" }, 401);
+  }
+  const token = authHeader.split(" ")[1];
+  try {
+    const payload = await verify(token, c.env.JWT_SECRET);
+    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+    const user = await prisma.user.findUnique({
+      where: { user_id: payload.sub as string }
+    });
+    if (!user) {
+      return c.json({ error: 'User not found' }, 401);
+    }
+    c.set('user', user);
+    await next();
+  } catch (error) {
+    return c.json({ error: 'Invalid token' }, 401);
+  }
+};
+```
 
 ## 🚀 Despliegue
 
@@ -201,14 +326,4 @@ Para información detallada sobre errores comunes, soluciones y proceso de desar
 pnpm deploy
 ```
 
-El despliegue se realiza automáticamente a través de Wrangler. Asegúrate de tener configuradas las variables de entorno en el dashboard de Cloudflare Workers.
-
-## 🐛 Solución de Problemas
-
-Si encuentras problemas comunes como:
-
-- Tablas no visibles en la consola de Neon
-- Errores de runtime en Edge
-- Problemas de compatibilidad con Prisma
-
-Consulta la [documentación completa](./DOCUMENTATION.md) que incluye todos los errores encontrados durante el desarrollo y sus soluciones.
+El despliegue se realiza automáticamente a través de Wrangler. Asegúrate de tener configuradas las variables de entorno (`DIRECT_DATABASE_URL`, `JWT_SECRET`) en el dashboard de Cloudflare Workers.

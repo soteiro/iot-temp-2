@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
 import { PrismaClient } from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
-import { decode, sign, verify } from 'hono/jwt'
+import { sign, verify } from 'hono/jwt'
 import { authenticateUser, authenticateDevice } from './lib/auth'
-import bcrypt from 'bcryptjs'
+import bcrypt  from 'bcryptjs'
+import crypto from 'crypto'
 
 // Definir la interfaz para las variables de entorno
 export interface Env {
@@ -97,14 +98,62 @@ app.post('/login', async (c)=>{
       c.env.JWT_SECRET
     )
 
+    const refreshToken = await sign({
+      sub: user.user_id,
+      type: 'refresh',
+      exp: now + (60 * 60 * 24 * 7) // 7 days
+    }, c.env.JWT_SECRET);
+
     const { password: _, ...userWithoutPassword } = user;
-    return c.json({token, user: userWithoutPassword});
+    return c.json({token, refreshToken, user: userWithoutPassword});
 
   } catch (error: any) {
     console.error('Error logging in:', error);
     return c.json({ error: 'Failed to login: ' + error.message }, 500);
   }
 })
+
+// create device with auth
+app.post('/devices', authenticateUser, async (c) => {
+  try {
+
+    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+    const body = await c.req.json();
+    const { name, user_id } = body;
+
+    if (!name || !user_id) {
+      return c.json({ error: 'Name and user_id are required' }, 400);
+    }
+    
+
+    // Generate API key and secret
+    const apiKey = crypto.randomBytes(16).toString('hex');
+    const apiSecret = crypto.randomBytes(32).toString('hex');
+    const hashedApiSecret = await bcrypt.hash(apiSecret, 10);
+    //create new device
+    const device = await prisma.device.create({
+      data:{
+        name,
+        user_id,
+        api_key: apiKey,
+        api_secret: hashedApiSecret,
+        is_active: true,
+      }
+    });
+
+    return c.json({
+      device: {
+        ...device,
+        api_secret: apiSecret // return plain secret only on creation
+      }
+    }, 201)
+
+  } catch (error: any) {
+    console.error('Error creating device:', error);
+    return c.json({ error: 'Failed to create device: ' + error.message }, 500);
+  }
+})
+
 
 // Endpoint para recibir datos del sensor
 app.post('/data', async (c) => {
@@ -134,6 +183,7 @@ app.post('/data', async (c) => {
     return c.json({ error: 'Failed to save data: ' + error.message }, 500);
   }
 });
+
 
 // Endpoint para obtener los datos más recientes
 app.get('/data', async (c) => {
