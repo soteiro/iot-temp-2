@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, User, Device } from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import { sign, verify } from 'hono/jwt'
 import { authenticateUser, authenticateDevice } from './lib/auth'
@@ -12,12 +12,17 @@ export interface Env {
   JWT_SECRET: string;
 }
 
+type Variables = {
+  user: User;
+  device: Device;
+}
+
 function getPrisma(connectionString: string) {
   const adapter = new PrismaNeon({ connectionString });
   return new PrismaClient({ adapter });
 }
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<{ Bindings: Env, Variables: Variables }>()
 
 app.get('/', (c) => {
   return c.text('One Hono To Rule Them All!')
@@ -116,13 +121,13 @@ app.post('/login', async (c)=>{
 // create device with auth
 app.post('/devices', authenticateUser, async (c) => {
   try {
-
+    const user = c.get('user');
     const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const body = await c.req.json();
-    const { name, user_id } = body;
+    const { name } = body;
 
-    if (!name || !user_id) {
-      return c.json({ error: 'Name and user_id are required' }, 400);
+    if (!name) {
+      return c.json({ error: 'Name is required' }, 400);
     }
     
 
@@ -134,7 +139,7 @@ app.post('/devices', authenticateUser, async (c) => {
     const device = await prisma.device.create({
       data:{
         name,
-        user_id,
+        user_id: user.user_id,
         api_key: apiKey,
         api_secret: hashedApiSecret,
         is_active: true,
@@ -225,6 +230,54 @@ app.get('/stats', async (c) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     return c.json({ error: 'Failed to fetch stats' }, 500);
+  }
+});
+
+app.post('/refresh', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { refreshToken } = body;
+
+    if (!refreshToken) {
+      return c.json({ error: 'Refresh token is required' }, 400);
+    }
+
+    // 1. Verify the refresh token
+    const payload = await verify(refreshToken, c.env.JWT_SECRET);
+
+    // 2. Check if it's actually a refresh token
+    if (payload.type !== 'refresh') {
+      return c.json({ error: 'Invalid token type. Expected a refresh token.' }, 401);
+    }
+
+    // 3. Check if the user exists
+    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+    const user = await prisma.user.findUnique({
+      where: { user_id: payload.sub as string }
+    });
+
+    if (!user) {
+      // This could also be a place to revoke the refresh token
+      return c.json({ error: 'User not found' }, 401);
+    }
+
+    // 4. Generate a new access token
+    const newAccessToken = await sign({
+      sub: user.user_id,
+      name: user.name,
+      email: user.email,
+      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+    }, c.env.JWT_SECRET);
+
+    return c.json({ token: newAccessToken });
+
+  } catch (error: any) {
+    // Handle expired or invalid tokens specifically
+    if (error.name === 'JwtTokenExpired' || error.name === 'JwtTokenInvalid') {
+        return c.json({ error: 'Invalid or expired refresh token' }, 401);
+    }
+    console.error('Error refreshing token:', error);
+    return c.json({ error: 'Failed to refresh token: ' + error.message }, 500);
   }
 });
 

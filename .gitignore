@@ -7,3 +7,6 @@ dist
 config.h
 .env.dev
 TODO.md
+wrangler.jsonc
+prisma/dev.db
+prisma/dev.db-journal

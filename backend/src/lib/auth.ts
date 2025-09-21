@@ -1,7 +1,20 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User, Device } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import bcrypt from 'bcryptjs';
+
+// Define types for Hono context
+type HonoEnv = {
+    Bindings: {
+        DIRECT_DATABASE_URL: string;
+        JWT_SECRET: string;
+    },
+    Variables: {
+        user: User,
+        device: Device
+    }
+}
 
 function getPrisma(connectionString: string) {
     const adapter = new PrismaNeon({ connectionString });
@@ -10,7 +23,7 @@ function getPrisma(connectionString: string) {
 
 
 // middleware auth devices
-export const authenticateDevice = async (c: Context, next: Next) => {
+export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
     const apiKey = c.req.header("X-API-Key");
     const apiSecret = c.req.header("X-API-Secret");
 
@@ -19,14 +32,20 @@ export const authenticateDevice = async (c: Context, next: Next) => {
     }
 
     const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
-    // Usar findFirst porque api_key y api_secret no son clave compuesta
-    const device = await prisma.device.findFirst({
+    
+    const device = await prisma.device.findUnique({
         where: {
             api_key: apiKey,
-            api_secret: apiSecret,
         }
     });
+
     if (!device) {
+        return c.json({ error: "Invalid API credentials" }, 403);
+    }
+
+    const secretIsValid = await bcrypt.compare(apiSecret, device.api_secret);
+
+    if (!secretIsValid) {
         return c.json({ error: "Invalid API credentials" }, 403);
     }
     
@@ -39,7 +58,7 @@ export const authenticateDevice = async (c: Context, next: Next) => {
 };
 
 // middleware auth user
-export const authenticateUser = async (c: Context, next: Next) => {
+export const authenticateUser = async (c: Context<HonoEnv>, next: Next) => {
     const authHeader = c.req.header("Authorization");
     
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -51,6 +70,10 @@ export const authenticateUser = async (c: Context, next: Next) => {
 
     try {
         const payload = await verify(token, c.env.JWT_SECRET);
+
+        if (payload.type === 'refresh') {
+            return c.json({ error: 'Invalid token type. Cannot use refresh token for authentication.' }, 401);
+        }
         
         const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
         // Verificar que el usuario existe
