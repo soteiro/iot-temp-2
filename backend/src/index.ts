@@ -161,11 +161,11 @@ app.post('/devices', authenticateUser, async (c) => {
 
 
 // Endpoint para recibir datos del sensor
-app.post('/data', async (c) => {
+app.post('/data', authenticateDevice, async (c) => {
   try {
     const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const data = await c.req.json();
-    
+    const device = c.get('device');
     if (!data.temperature || !data.humidity) {
       return c.json({ error: 'Invalid data: temperature and humidity are required' }, 400);
     }
@@ -174,7 +174,9 @@ app.post('/data', async (c) => {
     const sensorData = await prisma.sensorData.create({
       data: {
         temperature: parseFloat(data.temperature),
-        humidity: parseFloat(data.humidity)
+        humidity: parseFloat(data.humidity),
+        device_id: device.device_id
+        // timestamp se genera automáticamente
       }
     });
 
