@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, User, Device } from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
-import { decode, sign, verify } from 'hono/jwt'
+import { sign, verify } from 'hono/jwt'
 import { authenticateUser, authenticateDevice } from './lib/auth'
-import bcrypt from 'bcryptjs'
+import bcrypt  from 'bcryptjs'
+import crypto from 'crypto'
 
 // Definir la interfaz para las variables de entorno
 export interface Env {
@@ -11,12 +12,17 @@ export interface Env {
   JWT_SECRET: string;
 }
 
+type Variables = {
+  user: User;
+  device: Device;
+}
+
 function getPrisma(connectionString: string) {
   const adapter = new PrismaNeon({ connectionString });
   return new PrismaClient({ adapter });
 }
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<{ Bindings: Env, Variables: Variables }>()
 
 app.get('/', (c) => {
   return c.text('One Hono To Rule Them All!')
@@ -97,14 +103,62 @@ app.post('/login', async (c)=>{
       c.env.JWT_SECRET
     )
 
+    const refreshToken = await sign({
+      sub: user.user_id,
+      type: 'refresh',
+      exp: now + (60 * 60 * 24 * 7) // 7 days
+    }, c.env.JWT_SECRET);
+
     const { password: _, ...userWithoutPassword } = user;
-    return c.json({token, user: userWithoutPassword});
+    return c.json({token, refreshToken, user: userWithoutPassword});
 
   } catch (error: any) {
     console.error('Error logging in:', error);
     return c.json({ error: 'Failed to login: ' + error.message }, 500);
   }
 })
+
+// create device with auth
+app.post('/devices', authenticateUser, async (c) => {
+  try {
+    const user = c.get('user');
+    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+    const body = await c.req.json();
+    const { name } = body;
+
+    if (!name) {
+      return c.json({ error: 'Name is required' }, 400);
+    }
+    
+
+    // Generate API key and secret
+    const apiKey = crypto.randomBytes(16).toString('hex');
+    const apiSecret = crypto.randomBytes(32).toString('hex');
+    const hashedApiSecret = await bcrypt.hash(apiSecret, 10);
+    //create new device
+    const device = await prisma.device.create({
+      data:{
+        name,
+        user_id: user.user_id,
+        api_key: apiKey,
+        api_secret: hashedApiSecret,
+        is_active: true,
+      }
+    });
+
+    return c.json({
+      device: {
+        ...device,
+        api_secret: apiSecret // return plain secret only on creation
+      }
+    }, 201)
+
+  } catch (error: any) {
+    console.error('Error creating device:', error);
+    return c.json({ error: 'Failed to create device: ' + error.message }, 500);
+  }
+})
+
 
 // Endpoint para recibir datos del sensor
 app.post('/data', async (c) => {
@@ -134,6 +188,7 @@ app.post('/data', async (c) => {
     return c.json({ error: 'Failed to save data: ' + error.message }, 500);
   }
 });
+
 
 // Endpoint para obtener los datos más recientes
 app.get('/data', async (c) => {
@@ -175,6 +230,54 @@ app.get('/stats', async (c) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     return c.json({ error: 'Failed to fetch stats' }, 500);
+  }
+});
+
+app.post('/refresh', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { refreshToken } = body;
+
+    if (!refreshToken) {
+      return c.json({ error: 'Refresh token is required' }, 400);
+    }
+
+    // 1. Verify the refresh token
+    const payload = await verify(refreshToken, c.env.JWT_SECRET);
+
+    // 2. Check if it's actually a refresh token
+    if (payload.type !== 'refresh') {
+      return c.json({ error: 'Invalid token type. Expected a refresh token.' }, 401);
+    }
+
+    // 3. Check if the user exists
+    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
+    const user = await prisma.user.findUnique({
+      where: { user_id: payload.sub as string }
+    });
+
+    if (!user) {
+      // This could also be a place to revoke the refresh token
+      return c.json({ error: 'User not found' }, 401);
+    }
+
+    // 4. Generate a new access token
+    const newAccessToken = await sign({
+      sub: user.user_id,
+      name: user.name,
+      email: user.email,
+      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+    }, c.env.JWT_SECRET);
+
+    return c.json({ token: newAccessToken });
+
+  } catch (error: any) {
+    // Handle expired or invalid tokens specifically
+    if (error.name === 'JwtTokenExpired' || error.name === 'JwtTokenInvalid') {
+        return c.json({ error: 'Invalid or expired refresh token' }, 401);
+    }
+    console.error('Error refreshing token:', error);
+    return c.json({ error: 'Failed to refresh token: ' + error.message }, 500);
   }
 });
 
