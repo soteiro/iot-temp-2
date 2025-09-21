@@ -78,12 +78,14 @@ void loop() {
     const char* serverUrl = SERVER_URL;
     httpClient.begin(serverUrl); // HTTPS soportado por ESP32
     httpClient.addHeader("Content-Type", "application/json");
-    httpClient.addHeader("Authorization", "Bearer " + String(AUTH_TOKEN));
+    httpClient.addHeader("X-API-Key", String(X_API_Key));
+    httpClient.addHeader("X-API-Secret", String(X_API_Secret));
 
     StaticJsonDocument<200> jsonDoc;
     jsonDoc["temperature"] = temperature;
     jsonDoc["humidity"] = humidity;
     jsonDoc["RSSI"] = RSSI;
+    jsonDoc["device_id"] = String(DEVICE_ID);
 
     String requestBody;
     serializeJson(jsonDoc, requestBody);
@@ -106,7 +108,7 @@ void loop() {
     Serial.println("WiFi not connected");
   }
 
-  delay(5000); // Wait for a minute before next reading
+  delay(120000); // Wait for 120 seconds before next reading
 }
 
 
