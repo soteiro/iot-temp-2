@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { Bindings } from 'hono/types';
 import { Env } from '../types/types';
 
+
 // Registro de usuario
 const auth = new Hono<{ Bindings: Env }>()
 

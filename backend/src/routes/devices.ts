@@ -4,11 +4,8 @@ import { Env } from "../types/types";
 import { User, Device } from "@prisma/client/edge";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
+import { Variables } from "../types/types";
 
-export interface Variables {
-  user: User;
-  device: Device;
-}
 
 const deviceRoutes = new Hono<{ Bindings: Env, Variables: Variables }>()
 deviceRoutes.post('/', authenticateUser, async (c) => {
