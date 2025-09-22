@@ -156,6 +156,7 @@ app.post('/devices', authenticateUser, async (c) => {
 
 
 // Endpoint para recibir datos del sensor
+// cloudflare workers limita el tiempo de ejecucion a 10 ms, actualmente este endpoint demora 75-85 ms, hay que optimizarlo, ver otra opcion de despliegue, podria cambiar a mqtt para recibir datos.
 app.post('/data', authenticateDevice, async (c) => {
   try {
     const data = await c.req.json();
