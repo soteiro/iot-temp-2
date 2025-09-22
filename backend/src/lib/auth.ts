@@ -1,13 +1,13 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import { PrismaClient, User, Device } from '@prisma/client';
-import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaClient, User, Device } from '@prisma/client/edge';
 import bcrypt from 'bcryptjs';
+import { prisma } from './prisma';
 
 // Define types for Hono context
 type HonoEnv = {
     Bindings: {
-        DIRECT_DATABASE_URL: string;
+        DATABASE_URL: string;
         JWT_SECRET: string;
     },
     Variables: {
@@ -15,12 +15,6 @@ type HonoEnv = {
         device: Device
     }
 }
-
-function getPrisma(connectionString: string) {
-    const adapter = new PrismaNeon({ connectionString });
-    return new PrismaClient({ adapter });
-}
-
 
 // middleware auth devices
 export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
@@ -30,8 +24,6 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
     if (!apiKey || !apiSecret) {
         return c.json({ error: "Missing API credentials" }, 401);
     }
-
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     
     const device = await prisma.device.findUnique({
         where: {
@@ -75,7 +67,6 @@ export const authenticateUser = async (c: Context<HonoEnv>, next: Next) => {
             return c.json({ error: 'Invalid token type. Cannot use refresh token for authentication.' }, 401);
         }
         
-        const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
         // Verificar que el usuario existe
         const user = await prisma.user.findUnique({
             where: { user_id: payload.sub as string }

@@ -1,25 +1,19 @@
 import { Hono } from 'hono'
-import { PrismaClient, User, Device } from '@prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
 import { sign, verify } from 'hono/jwt'
 import { authenticateUser, authenticateDevice } from './lib/auth'
+import { prisma } from './lib/prisma'
 import bcrypt  from 'bcryptjs'
-import crypto from 'crypto'
+import { User, Device } from '@prisma/client/edge'
 
 // Definir la interfaz para las variables de entorno
 export interface Env {
-  DIRECT_DATABASE_URL: string; // Usar conexión directa temporalmente
+  DATABASE_URL: string;
   JWT_SECRET: string;
 }
 
 type Variables = {
   user: User;
   device: Device;
-}
-
-function getPrisma(connectionString: string) {
-  const adapter = new PrismaNeon({ connectionString });
-  return new PrismaClient({ adapter });
 }
 
 const app = new Hono<{ Bindings: Env, Variables: Variables }>()
@@ -32,7 +26,6 @@ app.get('/', (c) => {
 app.post('/register', async (c)=> {
   // TODO: agregar validacion con zod, rate limit, sanitizar inputs, front apiKey, cors.
   try {
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const body = await c.req.json();
     const { email, password, name } = body;
 
@@ -70,7 +63,6 @@ app.post('/register', async (c)=> {
 //login with email and password
 app.post('/login', async (c)=>{
   try {
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const body = await c.req.json();
     const { email, password } = body;
 
@@ -122,7 +114,6 @@ app.post('/login', async (c)=>{
 app.post('/devices', authenticateUser, async (c) => {
   try {
     const user = c.get('user');
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const body = await c.req.json();
     const { name } = body;
 
@@ -130,10 +121,14 @@ app.post('/devices', authenticateUser, async (c) => {
       return c.json({ error: 'Name is required' }, 400);
     }
     
-
-    // Generate API key and secret
-    const apiKey = crypto.randomBytes(16).toString('hex');
-    const apiSecret = crypto.randomBytes(32).toString('hex');
+    // Generate API key and secret using Web Crypto API
+    const apiKeyBytes = new Uint8Array(16);
+    const apiSecretBytes = new Uint8Array(32);
+    crypto.getRandomValues(apiKeyBytes);
+    crypto.getRandomValues(apiSecretBytes);
+    
+    const apiKey = Array.from(apiKeyBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    const apiSecret = Array.from(apiSecretBytes, byte => byte.toString(16).padStart(2, '0')).join('');
     const hashedApiSecret = await bcrypt.hash(apiSecret, 10);
     //create new device
     const device = await prisma.device.create({
@@ -163,7 +158,6 @@ app.post('/devices', authenticateUser, async (c) => {
 // Endpoint para recibir datos del sensor
 app.post('/data', authenticateDevice, async (c) => {
   try {
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const data = await c.req.json();
     const device = c.get('device');
     if (!data.temperature || !data.humidity) {
@@ -195,7 +189,6 @@ app.post('/data', authenticateDevice, async (c) => {
 // Endpoint para obtener los datos más recientes
 app.get('/data', async (c) => {
   try {
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const recentData = await prisma.sensorData.findMany({
       orderBy: { timestamp: 'desc' },
       take: 10
@@ -211,7 +204,6 @@ app.get('/data', async (c) => {
 // Endpoint para obtener estadísticas
 app.get('/stats', async (c) => {
   try {
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const stats = await prisma.sensorData.aggregate({
       _avg: {
         temperature: true,
@@ -253,7 +245,6 @@ app.post('/refresh', async (c) => {
     }
 
     // 3. Check if the user exists
-    const prisma = getPrisma(c.env.DIRECT_DATABASE_URL);
     const user = await prisma.user.findUnique({
       where: { user_id: payload.sub as string }
     });
