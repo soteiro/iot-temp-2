@@ -1,9 +1,9 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { authenticateDevice } from "../lib/auth";
-import { Env, Variables } from "../types/types";
-import { prisma } from "../lib/prisma";
+import { Env, Variables } from "@/types/types";
+import { prisma } from "@/lib/prisma";
 import { SensorDataSchema, CreateSensorDataSchema, CreateSensorData } from "../schemas/sensorData.schema";
-import { ErrorResponseSchema } from "../schemas/devices.schema"; 
+import { ErrorResponseSchema } from "@/schemas/devices.schema"; 
 
 //TODO: validar datos tem: -50 a 50, hum: 0 a 100 
 

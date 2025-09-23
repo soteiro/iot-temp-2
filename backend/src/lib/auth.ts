@@ -2,7 +2,7 @@ import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
-import { User, Device, Env, Variables } from '../types/types';
+import { Env, Variables } from '@/types/types';
 
 // Define types for Hono context
 type HonoEnv = {
