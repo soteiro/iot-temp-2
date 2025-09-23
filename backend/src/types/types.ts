@@ -27,7 +27,7 @@ export interface Device {
 }
 
 export type Variables = {
-  user: User;
-  device: Device;
+  user?: User;
+  device?: Device;
 }
  
