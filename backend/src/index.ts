@@ -2,7 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { Env, Variables } from './types/types';
 import authRoutes from './routes/auth.routes'
 import deviceRoutes from './routes/devices.routes'
-import dataRoutes from './routes/data'
+import dataRoutes from './routes/data.routes'
 import statsRoutes from './routes/stats'
 
 const app = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>()
@@ -13,7 +13,7 @@ app.get('/', (c: any) => {
 
 app.route('/auth', authRoutes)
 app.route('/devices', deviceRoutes)
-// app.route('/data', dataRoutes)
+app.route('/data', dataRoutes)
 // app.route('/stats', statsRoutes)
 
 app.doc('/docs', {

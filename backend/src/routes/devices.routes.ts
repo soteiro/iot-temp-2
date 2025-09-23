@@ -4,7 +4,6 @@ import { Env, Variables } from "../types/types";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
 import { CreateDeviceSchema, CreateDeviceResponseSchema, ErrorResponseSchema } from "../schemas/devices.schema";
-import { Context } from "hono";
 
 const deviceRoutes = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>();
 
@@ -52,10 +51,14 @@ const createDeviceRoute = createRoute({
 // Aplicar middleware de autenticación
 deviceRoutes.use("/*", authenticateUser);
 
-deviceRoutes.openapi(createDeviceRoute, async (c) => {
+deviceRoutes.openapi(createDeviceRoute, async (c : any) => {
   try {
     const user = c.get("user");
     const { name } = c.req.valid("json");
+
+    if (!user) {
+      return c.json({ error: "User not authenticated" }, 401);
+    }
 
     // Generar claves
     const apiKeyBytes = new Uint8Array(16);
@@ -68,7 +71,7 @@ deviceRoutes.openapi(createDeviceRoute, async (c) => {
     const hashedApiSecret = await bcrypt.hash(apiSecret, 10);
 
     const device = await prisma.device.create({
-      data: {
+      data:{
         name,
         user_id: user.user_id,
         api_key: apiKey,
@@ -80,7 +83,7 @@ deviceRoutes.openapi(createDeviceRoute, async (c) => {
     return c.json({
       device: {
         ...device,
-        api_secret: apiSecret, // Solo se devuelve en la creación
+        api_secret: apiSecret,
       },
     }, 201);
 
