@@ -1,39 +1,24 @@
-import { Hono } from 'hono'
-import { sign, verify } from 'hono/jwt'
-import { authenticateUser, authenticateDevice } from './lib/auth'
-import { prisma } from './lib/prisma'
-import bcrypt  from 'bcryptjs'
-import { User, Device } from '@prisma/client/edge'
-import authRoutes from './routes/auth'
-import deviceRoutes from './routes/devices'
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { Env, Variables } from './types/types';
+import authRoutes from './routes/auth.routes'
+import deviceRoutes from './routes/devices.routes'
 import dataRoutes from './routes/data'
 import statsRoutes from './routes/stats'
 
-// Definir la interfaz para las variables de entorno
-export interface Env {
-  DATABASE_URL: string;
-  JWT_SECRET: string;
-}
+const app = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>()
 
-type Variables = {
-  user: User;
-  device: Device;
-}
-
-const app = new Hono<{ Bindings: Env, Variables: Variables }>()
-
-app.get('/', (c) => {
+app.get('/', (c: any) => {
   return c.text('One Hono To Rule Them All!')
 })
 
 app.route('/auth', authRoutes)
-
 app.route('/devices', deviceRoutes)
+// app.route('/data', dataRoutes)
+// app.route('/stats', statsRoutes)
 
-app.route('/data', dataRoutes);
-
-app.route('/stats', statsRoutes);
-
-
+app.doc('/docs', {
+  openapi: '3.0.0',
+  info: { title: 'IoT Temperature API', version: '1.0.0' }
+})
 
 export default app

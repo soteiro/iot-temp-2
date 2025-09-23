@@ -1,19 +1,13 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import { PrismaClient, User, Device } from '@prisma/client/edge';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
+import { User, Device, Env, Variables } from '../types/types';
 
 // Define types for Hono context
 type HonoEnv = {
-    Bindings: {
-        DATABASE_URL: string;
-        JWT_SECRET: string;
-    },
-    Variables: {
-        user: User,
-        device: Device
-    }
+    Bindings: Env,
+    Variables: Variables
 }
 
 // middleware auth devices
