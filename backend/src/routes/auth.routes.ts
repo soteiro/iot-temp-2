@@ -1,8 +1,8 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { sign, verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../lib/prisma'; 
-import { Env } from '../types/types';   
+import { prisma } from '@/lib/prisma'; 
+import { Env } from '@/types/types';   
 import {
   RegisterSchema,
   LoginSchema,

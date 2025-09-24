@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { authenticateUser } from "../lib/auth";
-import { Env, Variables } from "../types/types";
-import { prisma } from "../lib/prisma";
+import { authenticateUser } from "@/lib/auth";
+import { Env, Variables } from "@/types/types";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { CreateDeviceSchema, CreateDeviceResponseSchema, ErrorResponseSchema } from "../schemas/devices.schema";
 

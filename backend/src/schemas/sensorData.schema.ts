@@ -2,10 +2,17 @@ import { z } from "@hono/zod-openapi";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-
 export const CreateSensorDataSchema = z.object({
-    temperature: z.number().openapi({ example: 23.51 }),
-    humidity: z.number().openapi({ example: 45.23 }),
+    temperature: z
+      .number()
+      .min(-50, { message: "Temperature must be between -50 and 50" })
+      .max(50, { message: "Temperature must be between -50 and 50" })
+      .openapi({ example: 23.51 }),
+    humidity: z
+      .number()
+      .min(0, { message: "Humidity must be between 0 and 100" })
+      .max(100, { message: "Humidity must be between 0 and 100" })
+      .openapi({ example: 45.23 }),
 })
 
 export const SensorDataSchema = z.object({
