@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { authenticateDevice } from "../lib/auth";
+import { authenticateDevice, authenticateUser } from "../lib/auth";
 import { Env, Variables } from "@/types/types";
 import { prisma } from "@/lib/prisma";
 import { SensorDataSchema, CreateSensorDataSchema, CreateSensorData } from "../schemas/sensorData.schema";
@@ -10,6 +10,7 @@ import { ErrorResponseSchema } from "@/schemas/devices.schema";
 const dataRoutes = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>();
 
 dataRoutes.use("/*", authenticateDevice);
+dataRoutes.use("/*", authenticateUser);
 
 dataRoutes.openapi(
     createRoute({

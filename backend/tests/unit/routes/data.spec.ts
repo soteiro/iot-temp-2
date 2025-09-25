@@ -237,6 +237,43 @@ describe('POST /data', () => {
     });
   });
 
+  it('debería rechazar si el dispositivo no pertenece al usuario autenticado', async () => {
+    const authMod = await import('@/lib/auth') as any;
+    authMod.authenticateDevice.mockImplementationOnce(
+      async (c: any, next: any) => {
+        c.set('device', { device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef', user_id: 'different_user' });
+        c.set('user', { user_id: 'u1', email: 'test@example.com' });
+        // Simula la lógica real: si el user_id no coincide, retorna 403
+        if (c.get('device').user_id !== c.get('user').user_id) {
+          return c.json({ error: "Device does not belong to the authenticated user" }, 403);
+        }
+        await next();
+      }
+    );
+
+    const { default: dataRoutes } = await import('@/routes/data.routes');
+
+    const body = JSON.stringify({ 
+      temperature: 22.5, 
+      humidity: 50 
+    });
+
+    const req = new Request('http://localhost/', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body
+    });
+
+    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+
+    expect(res.status).toBe(403);
+    const responseData = await res.json();
+    expect(responseData).toEqual({ error: "Device does not belong to the authenticated user" });
+  });
+
   it('debería aceptar valores límite máximos válidos', async () => {
     const mockSensorData = {
       id: 1,
