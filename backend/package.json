@@ -21,6 +21,7 @@
     "eslint": "^9.36.0",
     "hono": "^4.9.7",
     "hono-openapi": "^1.0.8",
+    "hono-rate-limiter": "^0.4.2",
     "prettier": "^3.6.2",
     "zod": "^4.1.11"
   },
@@ -29,8 +30,8 @@
     "@types/node": "^24.5.2",
     "prisma": "^6.16.2",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
     "vite-tsconfig-paths": "^5.0.0",
+    "vitest": "^3.2.4",
     "wrangler": "^4.4.0"
   }
 }
