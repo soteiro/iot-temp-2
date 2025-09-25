@@ -4,8 +4,20 @@ import authRoutes from '@/routes/auth.routes'
 import deviceRoutes from '@/routes/devices.routes'
 import dataRoutes from '@/routes/data.routes'
 import { cors } from 'hono/cors'
+import { rateLimit, RateLimitKeyFunc } from '@elithrar/workers-hono-rate-limit'
+import { Context, Next } from 'hono';
 
 const app = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>()
+
+const getKey: RateLimitKeyFunc = (c: Context): string => {
+  return c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'anonymous'
+}; 
+
+const rateLimiter = async (c: Context, next: Next) => {
+  return await rateLimit(c.env.RATE_LIMITER, getKey)(c, next)
+}
+
+app.use('*', rateLimiter)
 
 app.use('*', cors({
   origin: (origin, c) => {
