@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { setCookie } from 'hono/cookie';
 import { sign, verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma'; 
@@ -11,6 +12,8 @@ import {
   ErrorSchema,
   RefreshTokenSchema,
   TokenResponseSchema,
+  ValidateTokenResponseSchema,
+  logoutResponseSchema
 } from '../schemas/auth.schemas';
 
 // We use OpenAPIHono for routes that will be documented
@@ -30,8 +33,7 @@ const registerRoute = createRoute({
     201: { description: 'User created successfully', content: { 'application/json': { schema: UserSchema } } },
     400: { description: 'Bad Request (e.g., user already exists)', content: { 'application/json': { schema: ErrorSchema } } },
     500: { description: 'Internal Server Error', content: { 'application/json': { schema: ErrorSchema } } },
-  },
-});
+}});
 
 auth.openapi(registerRoute, async (c: any) => {
   try {
@@ -93,6 +95,21 @@ auth.openapi(loginRoute, async (c: any) => {
     const token = await sign({ sub: user.user_id, name: user.name, email: user.email, exp: now + expiredIn }, c.env.JWT_SECRET);
     const refreshToken = await sign({ sub: user.user_id, type: 'refresh', exp: now + (60 * 60 * 24 * 7) }, c.env.JWT_SECRET);
 
+     setCookie(c, 'sb-access-token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: expiredIn,
+    });
+    setCookie(c, 'sb-refresh-token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
     const { password: _, ...userWithoutPassword } = user;
     return c.json({ token, refreshToken, user: userWithoutPassword });
   } catch (error: any) {
@@ -140,6 +157,63 @@ auth.openapi(refreshRoute, async (c: any) => {
         console.error('Error refreshing token:', error);
         return c.json({ error: 'Failed to refresh token: ' + error.message }, 500);
     }
+});
+
+
+// TODO: agregar a test 
+const validateRoute = createRoute({
+  method: 'get',
+  path: '/validate',
+  summary: 'Validate access token',
+  responses: {
+    200: { description: 'Token is valid', content: { 'application/json': { schema: ValidateTokenResponseSchema } } },
+    401: { description: 'Unauthorized (Invalid or expired token)', content: { 'application/json': { schema: ErrorSchema } } },
+  },
+});
+
+auth.openapi(validateRoute, async (c: any) => {
+  try {
+    // Primero intenta leer el token de la cookie
+    const token = c.req.cookie('sb-access-token')
+      // O de la cabecera Authorization si quieres soportar ambos métodos
+      || c.req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return c.json({ error: 'No token provided' }, 401);
+    }
+
+    const payload = await verify(token, c.env.JWT_SECRET);
+    return c.json({ user: payload }, 200);
+  } catch (error: any) {
+    return c.json({ error: 'Failed to validate token: ' + error.message }, 401);
+  }
+});
+
+
+// TODO: agregar a test 
+const logOut = createRoute({
+  method: 'post',
+  path: '/logout',
+  summary: 'Log out a user',
+  responses: {
+    200: { description: 'Logout successful', content: { 'application/json': { schema: logoutResponseSchema } } },
+  },
+});
+
+auth.openapi(logOut, async (c) => {
+  // Para "cerrar sesión" simplemente eliminamos las cookies en el cliente
+  setCookie(c, 'sb-access-token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    path: '/',
+});
+  setCookie(c, 'sb-refresh-token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    path: '/',
+  });
+  return c.json({ message: 'Logged out successfully' });
 });
 
 export default auth;

@@ -3,6 +3,7 @@ import { Env, Variables } from './types/types';
 import authRoutes from '@/routes/auth.routes'
 import deviceRoutes from '@/routes/devices.routes'
 import dataRoutes from '@/routes/data.routes'
+import userRoutes from '@/routes/users.routes';
 import { cors } from 'hono/cors'
 import { rateLimit, RateLimitKeyFunc } from '@elithrar/workers-hono-rate-limit'
 import { Context, Next } from 'hono';
@@ -29,6 +30,7 @@ app.use('*', cors({
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-API-Secret'],
+  credentials: true,
 }))
 
 
@@ -36,6 +38,7 @@ app.get('/', (c: any) => {
   return c.text('One Hono To Rule Them All!')
 })
 
+app.route('/users', userRoutes)
 app.route('/auth', authRoutes)
 app.route('/devices', deviceRoutes)
 app.route('/data', dataRoutes)

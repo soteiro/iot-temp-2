@@ -44,3 +44,13 @@ export const TokenResponseSchema = z.object({
 export const ErrorSchema = z.object({
   error: z.string().openapi({ example: 'Error message content' }),
 }).openapi('Error');
+
+// Schema para la respuesta de validación de token
+export const ValidateTokenResponseSchema = z.object({
+  valid: z.boolean().openapi({ example: true }),
+  user: UserSchema.optional(), // Puedes incluir los datos del usuario si el token es válido
+}).openapi('ValidateTokenResponse');
+
+export const logoutResponseSchema = z.object({
+  message: z.string().openapi({ example: 'Logged out successfully' }),
+}).openapi('LogoutResponse');
