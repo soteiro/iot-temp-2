@@ -1,0 +1,20 @@
+---
+import '@styles/global.css';
+import Aside from '@/components/Aside.astro';
+interface Props {
+    title: string;
+}
+const { title } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="es" transition:name="fade">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+</head>
+<body data-theme="forest" class="flex w-full h-screen">
+    <Aside />
+    <slot />
+</body>
+</html>

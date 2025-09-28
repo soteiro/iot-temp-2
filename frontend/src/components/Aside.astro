@@ -1,0 +1,118 @@
+---
+
+---
+
+<button
+  id="burgerBtn"
+  class="md:hidden fixed top-2 left-2 z-50 bg-base-200 rounded p-2 border border-red"
+  aria-label="Abrir menú"
+  type="button">
+  <svg
+    class="pointer-events-none"
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="none">
+    <rect y="4" width="24" height="2" rx="1" fill="currentColor"></rect>
+    <rect y="11" width="24" height="2" rx="1" fill="currentColor"></rect>
+    <rect y="18" width="24" height="2" rx="1" fill="currentColor"></rect>
+  </svg>
+</button>
+
+<aside
+  id="asideMenu"
+  class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 z-50 transform -translate-x-full transition-transform duration-300 md:static md:translate-x-0 md:w-40 md:block flex flex-col space-y-6">
+  <section class="flex items-center justify-between">
+    <h2 class="text-2xl font-semibold">Menu</h2>
+    <button
+      id="closeAside"
+      class="md:hidden top-2 right-2 z-50 bg-base-200 rounded p-2"
+      aria-label="Cerrar menú"
+      type="button">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <line
+          x1="6"
+          y1="6"
+          x2="18"
+          y2="18"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"></line>
+        <line
+          x1="18"
+          y1="6"
+          x2="6"
+          y2="18"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"></line>
+      </svg>
+    </button>
+  </section>
+
+  <section>
+    <ul class="space-y-6 mt-4">
+      <li><a href="/dashboard" class="block hover:underline">Dashboard</a></li>
+      <li><a href="/settings" class="block hover:underline">Settings</a></li>
+      <li><a href="/profile" class="block hover:underline">Profile</a></li>
+    </ul>
+  </section>
+
+  <section class="absolute bottom-4 left-4 right-4">
+    <button onclick="logout()" class="btn btn-warning btn-soft">
+      Logout
+    </button>
+  </section>
+</aside>
+
+<script>
+  declare global {
+    interface Window {
+      logout: () => Promise<void>;
+    }
+  }
+  const burgerBtn = document.getElementById("burgerBtn");
+  const asideMenu = document.getElementById("asideMenu");
+  const closeAside = document.getElementById("closeAside");
+
+  if (burgerBtn && asideMenu && closeAside) {
+    burgerBtn.addEventListener("click", () => {
+      asideMenu.classList.toggle("-translate-x-full");
+      burgerBtn.classList.toggle("hidden");
+    });
+
+    closeAside.addEventListener("click", () => {
+      asideMenu.classList.add("-translate-x-full");
+      burgerBtn.classList.remove("hidden");
+    });
+
+    // Opcional: cerrar el menú al hacer click fuera en móvil
+    document.addEventListener("click", (e) => {
+      if (
+        asideMenu.classList.contains("-translate-x-full") === false &&
+        !asideMenu.contains(e.target as Node) &&
+        e.target !== burgerBtn
+      ) {
+        asideMenu.classList.add("-translate-x-full");
+        burgerBtn.classList.remove("hidden");
+      }
+    });
+  }
+  async function logout() {
+    const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8787";
+
+    try {
+      const res = await fetch(`${apiUrl}/auth/logout`, {
+        method: "POST",
+        credentials: "include", // Incluir cookies
+      });
+      if (res.ok) {
+        window.location.href = "/login";
+      }
+    } catch (e) {
+      console.error("Error during logout:", e);
+    }
+  }
+  window.logout = logout;
+</script>

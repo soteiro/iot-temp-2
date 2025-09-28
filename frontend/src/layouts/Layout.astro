@@ -1,14 +1,20 @@
 ---
 import '@styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { fade } from 'astro:transitions';
+import { slide } from 'astro:transitions';
+
+const { title } = Astro.props;
 ---
 <!doctype html>
-<html lang="es">
+<html lang="es" transition:name="fade">
 	<head>
 		<meta charset="UTF-8" />
+		<ClientRouter/>
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>{title}</title>
 	</head>
 	<body data-theme="forest">
 		<slot />

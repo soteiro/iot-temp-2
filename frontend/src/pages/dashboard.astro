@@ -1,0 +1,54 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+const { title } = Astro.props;
+
+// Obtener el token de la cookie
+const token = Astro.cookies.get('sb-access-token')?.value;
+
+let profile = null;
+if (token) {
+    const res = await fetch(`${import.meta.env.PUBLIC_API_URL || 'http://localhost:8787'}/users/profile`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    if (res.ok) {
+        profile = await res.json();
+    }
+}
+---
+<AppLayout title="Dashboard">
+    <h1>Dashboard IoT - Temperatura</h1>
+    <section>
+        <div>
+            <h2>Resumen</h2>
+            <ul>
+                <li>Temperatura promedio: 23°C</li>
+                <li>Máxima hoy: 28°C</li>
+                <li>Mínima hoy: 18°C</li>
+                <li>Dispositivos conectados: 5</li>
+            </ul>
+        </div>
+        <div>
+            <h2>Gráfica de temperatura (24h)</h2>
+            <!-- Aquí iría una gráfica, por ejemplo con Chart.js o similar -->
+            <canvas id="tempChart"></canvas>
+        </div>
+        <div>
+            <h2>Alertas recientes</h2>
+            <ul>
+                <li>Sensor 2 fuera de rango (30°C)</li>
+                <li>Sensor 4 desconectado</li>
+            </ul>
+        </div>
+        <div>
+            <h2>Dispositivos</h2>
+            <ul>
+                <li>Sensor 1: 22°C (OK)</li>
+                <li>Sensor 2: 30°C (Alerta)</li>
+                <!-- ... -->
+            </ul>
+            <a href="/devices">Administrar dispositivos</a>
+        </div>
+    </section>
+</AppLayout>

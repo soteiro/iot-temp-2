@@ -1,0 +1,85 @@
+---
+import Layout from '@/layouts/Layout.astro';
+
+---
+<Layout title="Login">
+<main class="flex gap-4 flex-col items-center justify-center min-h-screen p-4">
+    <h1 class="text-4xl font-bold">Inicia sesión</h1>
+    <section class="flex flex-col gap-4 items-center justify-center border p-4 rounded-lg shadow-lg"> 
+      <form id="loginForm" class="flex flex-col gap-1 items-left justify-center p-6">
+        <label class="label" for="email">email</label>
+        <input class="input" type="text" id="email" name="email" required autofocus />
+        <br />
+        <label class="label" for="password">Password</label>
+        <input class="input" type="password" id="password" name="password" required />
+        <br />
+        <button class="btn btn-primary" type="submit">Login</button>
+      </form>
+    </section>
+    <h2>Usuarios de prueba</h2>
+    <section class="flex flex-col gap-4 items-center justify-center p-4 shadow-lg mb-2">
+        <button onclick="setUser1()" 
+        class="btn btn-accent">Test User 1</button>               
+        <button onclick="setUser2()"
+         class="btn btn-accent">Test User 2</button>
+    </section>
+    
+</main>
+</Layout>
+<script>
+// Extiende la interfaz Window para incluir setUser1
+declare global {
+  interface Window {
+    setUser1: () => void;
+    setUser2: () => void;
+  }
+}
+const API_URL = import.meta.env.PUBLIC_API_URL || 'https://TU_BACKEND.cloudflare.workers.dev';
+
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('email') as HTMLInputElement | null)?.value;
+    const password = (document.getElementById('password') as HTMLInputElement | null)?.value;
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include' 
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Redirige a la ruta protegida
+        window.location.href = '/dashboard';
+      } else {
+        alert('Credenciales incorrectas');
+      }
+    } catch(error) {
+      console.error('Error during login:', error);
+      alert('Error during login. Please try again later.');
+    }
+  });
+}
+function setUser1() {
+  const emailInput = document.getElementById('email') as HTMLInputElement | null;
+  const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+  if (emailInput && passwordInput) {
+    emailInput.value = 'debug@mail.com';
+    passwordInput.value = '97158700';
+  }
+}
+window.setUser1 = setUser1;
+
+function setUser2(){
+  const emailInput = document.getElementById('email') as HTMLInputElement | null;
+  const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+  if (emailInput && passwordInput) {
+    emailInput.value = 'test1@mail.com';
+    passwordInput.value = '97158700';
+  }
+}
+window.setUser2 = setUser2;
+</script>
