@@ -213,6 +213,18 @@ auth.openapi(logOut, async (c) => {
     sameSite: 'Lax',
     path: '/',
   });
+  setCookie(c, 'userName', '', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    path: '/',
+  });
+  setCookie(c, 'userEmail', '', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    path: '/',
+  });
   return c.json({ message: 'Logged out successfully' });
 });
 
