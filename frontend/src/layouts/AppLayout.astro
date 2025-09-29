@@ -31,8 +31,8 @@ if (!userName || !userEmail) {
 
         // Guardar en cookies para futuros SSR (solo si tienes acceso a Astro.cookies.set)
         if (Astro.cookies.set) {
-            Astro.cookies.set('userName', userName, { path: '/', httpOnly: false });
-            Astro.cookies.set('userEmail', userEmail, { path: '/', httpOnly: false });
+            Astro.cookies.set('userName', userName ?? '', { path: '/', httpOnly: false });
+            Astro.cookies.set('userEmail', userEmail ?? '', { path: '/', httpOnly: false });
         }
     } else {
         userName = "Usuario";
