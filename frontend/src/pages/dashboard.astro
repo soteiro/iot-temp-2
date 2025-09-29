@@ -5,17 +5,6 @@ const { title } = Astro.props;
 // Obtener el token de la cookie
 const token = Astro.cookies.get('sb-access-token')?.value;
 
-let profile = null;
-if (token) {
-    const res = await fetch(`${import.meta.env.PUBLIC_API_URL || 'http://localhost:8787'}/users/profile`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    if (res.ok) {
-        profile = await res.json();
-    }
-}
 ---
 <AppLayout title="Dashboard">
     <h1>Dashboard IoT - Temperatura</h1>

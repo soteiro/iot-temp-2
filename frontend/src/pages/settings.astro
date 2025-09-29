@@ -1,0 +1,55 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+---
+
+<AppLayout title="Ajustes" />
+<h1>Configuración de la cuenta</h1>
+<form>
+  <div>
+    <label for="username">Nombre de usuario:</label>
+    <input type="text" id="username" name="username" value="usuario123" />
+  </div>
+  <div>
+    <label for="email">Correo electrónico:</label>
+    <input
+      type="email"
+      id="email"
+      name="email"
+      value="usuario123@example.com"
+    />
+  </div>
+  <div>
+    <label for="password">Cambiar contraseña:</label>
+    <input type="password" id="password" name="password" />
+  </div>
+  <button type="submit">Guardar cambios</button>
+</form>
+<section>
+  <h2>Preferencias</h2>
+  <div>
+    <label for="notifications">Notificaciones por correo:</label>
+    <input type="checkbox" id="notifications" name="notifications" checked />
+  </div>
+  <div>
+    <label for="theme">Tema:</label>
+    <select id="theme" name="theme">
+      <option value="light">Claro</option>
+      <option value="dark">Oscuro</option>
+    </select>
+  </div>
+</section>
+<button type="button" onclick="deleteAccount()" class="btn btn-danger"
+  >Eliminar cuenta</button
+>
+<script>
+  function deleteAccount() {
+    if (
+      confirm(
+        "¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer."
+      )
+    ) {
+      // Lógica para eliminar la cuenta
+      alert("Cuenta eliminada");
+    }
+  }
+</script>

@@ -1,4 +1,4 @@
 @import "tailwindcss";
 @plugin "daisyui"{
-    themes: forest, dark, cupcake;
+    themes: forest, dark, cupcake, dim, synthwave, sunset, retro, cyberpunk, night, light, bussines, coffee, acid, emerald, autumn;
 };

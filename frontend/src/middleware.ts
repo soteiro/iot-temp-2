@@ -4,7 +4,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
   // Lista de rutas protegidas
-  const protectedRoutes = ['/dashboard', '/perfil', '/otra-ruta'];
+  const protectedRoutes = ['/dashboard', '/devices', '/settings', '/profile'];
 
   // Si la ruta es protegida
   if (protectedRoutes.some(route => pathname.startsWith(route))) {

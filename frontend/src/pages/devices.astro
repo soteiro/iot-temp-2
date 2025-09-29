@@ -1,0 +1,456 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+
+// Mock data - en producción vendría del backend
+const devices = [
+  {
+    id: 'DEV-001',
+    name: 'Sensor Cocina',
+    type: 'temperature',
+    status: 'online',
+    lastReading: { value: 23.5, unit: '°C', timestamp: '10:45' },
+    location: 'Cocina Principal',
+    battery: 85
+  },
+  {
+    id: 'DEV-002', 
+    name: 'Sensor Sala',
+    type: 'temperature',
+    status: 'online',
+    lastReading: { value: 21.2, unit: '°C', timestamp: '10:44' },
+    location: 'Sala de Estar',
+    battery: 92
+  },
+  {
+    id: 'DEV-003',
+    name: 'Sensor Dormitorio',
+    type: 'temperature', 
+    status: 'offline',
+    lastReading: { value: 19.8, unit: '°C', timestamp: '09:15' },
+    location: 'Dormitorio Principal',
+    battery: 34
+  },
+  {
+    id: 'DEV-004',
+    name: 'Sensor Exterior',
+    type: 'temperature',
+    status: 'warning',
+    lastReading: { value: 35.2, unit: '°C', timestamp: '10:46' },
+    location: 'Patio Trasero',
+    battery: 67
+  }
+];
+
+const onlineCount = devices.filter(d => d.status === 'online').length;
+const warningCount = devices.filter(d => d.status === 'warning').length;
+const offlineCount = devices.filter(d => d.status === 'offline').length;
+---
+
+<AppLayout title="Dispositivos IoT">
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- 1. HEADER PRINCIPAL -->
+    <header class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-4xl font-bold text-base-content">Dispositivos</h1>
+        <p class="text-base-content/60 mt-1">Gestiona tus sensores de temperatura</p>
+      </div>
+      <button class="btn btn-primary btn-lg gap-2" onclick="openAddDeviceModal()">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Nuevo Dispositivo
+      </button>
+    </header>
+
+    <!-- 2. RESUMEN EJECUTIVO -->
+    <section class="bg-base-100 rounded-2xl p-6 mb-8 shadow-sm border border-base-200">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="text-3xl font-bold text-base-content">{devices.length}</div>
+          <div class="text-sm text-base-content/60">Total</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-success">{onlineCount}</div>
+          <div class="text-sm text-base-content/60">Activos</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-warning">{warningCount}</div>
+          <div class="text-sm text-base-content/60">Alertas</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-error">{offlineCount}</div>
+          <div class="text-sm text-base-content/60">Offline</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. BARRA DE HERRAMIENTAS -->
+    <section class="bg-base-100 rounded-xl p-4 mb-6 shadow-sm border border-base-200">
+      <div class="flex flex-col lg:flex-row gap-4 items-center">
+        <!-- Búsqueda -->
+        <div class="flex-1 w-full lg:w-auto">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre o ubicación..." 
+              class="input input-bordered pl-10 w-full" 
+              id="searchDevices"
+            />
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="flex gap-3">
+          <select class="select select-bordered select-sm" id="filterStatus">
+            <option value="">Estado</option>
+            <option value="online">Activos</option>
+            <option value="warning">Alertas</option>
+            <option value="offline">Offline</option>
+          </select>
+
+          <div class="dropdown dropdown-end">
+            <button class="btn btn-outline btn-sm gap-2" tabindex="0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+              </svg>
+              Vista
+            </button>
+            <ul class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40">
+              <li><a onclick="toggleView('grid')">Tarjetas</a></li>
+              <li><a onclick="toggleView('list')">Lista</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. LISTA DE DISPOSITIVOS -->
+    <section id="devicesContainer">
+      <!-- Vista Grid (por defecto) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="devicesGrid">
+        {devices.map(device => (
+          <article class="bg-base-100 rounded-xl p-5 shadow-sm border border-base-200 hover:shadow-md transition-all duration-200 hover:border-base-300">
+            
+            <!-- Header compacto -->
+            <header class="flex items-start justify-between mb-4">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-lg truncate">{device.name}</h3>
+                <p class="text-sm text-base-content/60 truncate">{device.location}</p>
+              </div>
+              
+              <!-- Estado visual -->
+              <div class={`w-3 h-3 rounded-full ml-3 flex-shrink-0 ${
+                device.status === 'online' ? 'bg-success' :
+                device.status === 'warning' ? 'bg-warning' : 'bg-error'
+              }`}></div>
+            </header>
+
+            <!-- Temperatura principal -->
+            <div class="text-center mb-4 py-3 bg-base-200/50 rounded-lg">
+              <div class="text-3xl font-bold text-base-content">
+                {device.lastReading.value}°
+              </div>
+              <div class="text-xs text-base-content/50 mt-1">
+                Actualizado {device.lastReading.timestamp}
+              </div>
+            </div>
+
+            <!-- Información secundaria -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-base-content/40" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 11-2 0 1 1 0 012 0zm-3 3a1 1 0 11-2 0 1 1 0 012 0z" />
+                </svg>
+                <span class="text-sm text-base-content/60">{device.battery}%</span>
+              </div>
+              
+              <div class={`badge badge-sm ${
+                device.status === 'online' ? 'badge-success' :
+                device.status === 'warning' ? 'badge-warning' : 'badge-error'
+              }`}>
+                {device.status === 'online' ? 'Activo' :
+                 device.status === 'warning' ? 'Alerta' : 'Offline'}
+              </div>
+            </div>
+
+            <!-- Acciones simplificadas -->
+            <div class="flex gap-2">
+              <button class="btn btn-sm btn-outline flex-1" onclick={`viewDevice('${device.id}')`}>
+                Ver más
+              </button>
+              <div class="dropdown dropdown-end">
+                <button class="btn btn-sm btn-ghost btn-square" tabindex="0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01" />
+                  </svg>
+                </button>
+                <ul class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-32 text-sm">
+                  <li><a onclick={`editDevice('${device.id}')`}>Editar</a></li>
+                  <li><a onclick={`configureDevice('${device.id}')`}>Config</a></li>
+                  <li><a class="text-error" onclick={`deleteDevice('${device.id}')`}>Eliminar</a></li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <!-- Vista Lista (oculta por defecto) -->
+      <div class="hidden" id="devicesList">
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>Dispositivo</th>
+                <th>Estado</th>
+                <th>Temperatura</th>
+                <th>Batería</th>
+                <th>Última actualización</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map(device => (
+                <tr>
+                  <td>
+                    <div>
+                      <div class="font-semibold">{device.name}</div>
+                      <div class="text-sm text-base-content/60">{device.location}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class={`badge badge-sm ${
+                      device.status === 'online' ? 'badge-success' :
+                      device.status === 'warning' ? 'badge-warning' : 'badge-error'
+                    }`}>
+                      {device.status === 'online' ? 'Activo' :
+                       device.status === 'warning' ? 'Alerta' : 'Offline'}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="font-semibold">{device.lastReading.value}°C</span>
+                  </td>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <progress 
+                        class={`progress progress-sm w-16 ${
+                          device.battery > 50 ? 'progress-success' :
+                          device.battery > 20 ? 'progress-warning' : 'progress-error'
+                        }`}
+                        value={device.battery} 
+                        max="100">
+                      </progress>
+                      <span class="text-sm">{device.battery}%</span>
+                    </div>
+                  </td>
+                  <td class="text-sm">{device.lastReading.timestamp}</td>
+                  <td>
+                    <div class="flex gap-1">
+                      <button class="btn btn-ghost btn-xs" onclick={`viewDevice('${device.id}')`}>Ver</button>
+                      <button class="btn btn-ghost btn-xs" onclick={`editDevice('${device.id}')`}>Editar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Modal optimizado -->
+  <dialog id="addDeviceModal" class="modal">
+    <div class="modal-box max-w-md">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-bold">Nuevo Dispositivo</h3>
+        <button class="btn btn-ghost btn-sm btn-circle" onclick="closeAddDeviceModal()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <form class="space-y-4" id="deviceForm">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-medium">Nombre</span>
+          </label>
+          <input 
+            type="text" 
+            placeholder="Ej: Sensor Cocina" 
+            class="input input-bordered focus:input-primary" 
+            required 
+          />
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-medium">Ubicación</span>
+          </label>
+          <input 
+            type="text" 
+            placeholder="Ej: Cocina Principal" 
+            class="input input-bordered focus:input-primary" 
+            required 
+          />
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-medium">Tipo</span>
+          </label>
+          <select class="select select-bordered focus:select-primary" required>
+            <option value="" disabled selected>Selecciona el tipo</option>
+            <option value="temperature">Temperatura</option>
+            <option value="humidity">Humedad</option>
+            <option value="temp_humidity">Temperatura y Humedad</option>
+          </select>
+        </div>
+      </form>
+      
+      <div class="flex gap-3 mt-8">
+        <button class="btn btn-outline flex-1" onclick="closeAddDeviceModal()">
+          Cancelar
+        </button>
+        <button class="btn btn-primary flex-1" onclick="addDevice()">
+          Crear Dispositivo
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+</AppLayout>
+
+<script>
+  // Estado de vista actual
+  let currentView = 'grid';
+
+  // Elementos del DOM
+  const searchInput = document.getElementById('searchDevices') as HTMLInputElement;
+  const statusFilter = document.getElementById('filterStatus') as HTMLSelectElement;
+  const devicesGrid = document.getElementById('devicesGrid');
+  const devicesList = document.getElementById('devicesList');
+
+  // Gestión de vistas
+  function toggleView(view: string) {
+    currentView = view;
+    
+    if (view === 'grid') {
+      devicesGrid?.classList.remove('hidden');
+      devicesList?.classList.add('hidden');
+    } else {
+      devicesGrid?.classList.add('hidden');
+      devicesList?.classList.remove('hidden');
+    }
+  }
+
+  // Modal management
+  function openAddDeviceModal() {
+    const modal = document.getElementById('addDeviceModal') as HTMLDialogElement;
+    modal?.showModal();
+  }
+
+  function closeAddDeviceModal() {
+    const modal = document.getElementById('addDeviceModal') as HTMLDialogElement;
+    modal?.close();
+    // Reset form
+    const form = document.getElementById('deviceForm') as HTMLFormElement;
+    form?.reset();
+  }
+
+  // Device actions
+  function addDevice() {
+    const form = document.getElementById('deviceForm') as HTMLFormElement;
+    if (form?.checkValidity()) {
+      console.log('Creando dispositivo...');
+      // Aquí harías la llamada a la API
+      closeAddDeviceModal();
+      
+      // Mostrar feedback positivo
+      showNotification('Dispositivo creado exitosamente', 'success');
+    } else {
+      form?.reportValidity();
+    }
+  }
+
+  function viewDevice(deviceId: string) {
+    console.log('Viendo dispositivo:', deviceId);
+    // Navegar a página de detalles o abrir modal
+    window.location.href = `/devices/${deviceId}`;
+  }
+
+  function editDevice(deviceId: string) {
+    console.log('Editando dispositivo:', deviceId);
+    // Abrir modal de edición con datos precargados
+  }
+
+  function configureDevice(deviceId: string) {
+    console.log('Configurando dispositivo:', deviceId);
+    // Abrir modal de configuración
+  }
+
+  function deleteDevice(deviceId: string) {
+    if (confirm('¿Eliminar este dispositivo? Esta acción no se puede deshacer.')) {
+      console.log('Eliminando dispositivo:', deviceId);
+      // Llamada a la API para eliminar
+      showNotification('Dispositivo eliminado', 'info');
+    }
+  }
+
+  // Búsqueda y filtrado
+  function filterDevices() {
+    const searchTerm = searchInput?.value.toLowerCase() || '';
+    const statusFilter = (document.getElementById('filterStatus') as HTMLSelectElement)?.value || '';
+    
+    console.log('Filtrando:', { searchTerm, statusFilter });
+    // Implementar filtrado en tiempo real
+  }
+
+  // Notificaciones
+  function showNotification(message: string, type: 'success' | 'error' | 'info' = 'info') {
+    // Crear toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} fixed top-4 right-4 z-50 w-auto max-w-sm shadow-lg`;
+    toast.innerHTML = `
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove después de 3 segundos
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+
+  // Event listeners
+  searchInput?.addEventListener('input', filterDevices);
+  document.getElementById('filterStatus')?.addEventListener('change', filterDevices);
+
+  // Actualización automática cada 2 minutos
+  setInterval(() => {
+    console.log('Actualizando datos...');
+    // Fetch fresh data from API
+  }, 120000);
+
+  // Make functions globally available
+  (window as any).toggleView = toggleView;
+  (window as any).openAddDeviceModal = openAddDeviceModal;
+  (window as any).closeAddDeviceModal = closeAddDeviceModal;
+  (window as any).addDevice = addDevice;
+  (window as any).viewDevice = viewDevice;
+  (window as any).editDevice = editDevice;
+  (window as any).configureDevice = configureDevice;
+  (window as any).deleteDevice = deleteDevice;
+</script>
