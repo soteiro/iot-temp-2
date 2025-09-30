@@ -22,39 +22,275 @@ const tempData = [
   { time: Date.now() - 2 * 60 * 60 * 1000, temperature: 22, sensor: "sensor1" },  // 2h atrás
   { time: Date.now(), temperature: 21, sensor: "sensor1" },                       // ahora
 ];
+
+// Calcular métricas dinámicas
+const temperatures = tempData.map(d => d.temperature);
+const avgTemp = Math.round(temperatures.reduce((a, b) => a + b, 0) / temperatures.length);
+const maxTemp = Math.max(...temperatures);
+const minTemp = Math.min(...temperatures);
+const currentTemp = temperatures[temperatures.length - 1];
 ---
 
 <AppLayout title="Dashboard">
-    <h1>Dashboard IoT - Temperatura</h1>
-    <section>
-        <div>
-            <h2>Resumen</h2>
-            <ul>
-                <li>Temperatura promedio: 23°C</li>
-                <li>Máxima hoy: 28°C</li>
-                <li>Mínima hoy: 18°C</li>
-                <li>Dispositivos conectados: 5</li>
-            </ul>
+  <div class="min-h-screen bg-base-200 p-4">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <svg class="w-6 h-6 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
         </div>
         <div>
-            <h2>Gráfica de temperatura (24h)</h2>
-            <TempChart data={tempData} client:load />
+          <h1 class="text-3xl font-bold text-base-content">Dashboard IoT</h1>
+          <p class="text-base-content/70">Monitoreo de temperatura en tiempo real</p>
         </div>
-        <div>
-            <h2>Alertas recientes</h2>
-            <ul>
-                <li>Sensor 2 fuera de rango (30°C)</li>
-                <li>Sensor 4 desconectado</li>
-            </ul>
+      </div>
+      <div class="text-sm breadcrumbs">
+        <ul>
+          <li><a href="/" class="text-primary">Inicio</a></li>
+          <li class="text-base-content">Dashboard</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Temperatura Actual -->
+      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
+        <div class="stat-figure text-primary">
+          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
         </div>
-        <div>
-            <h2>Dispositivos</h2>
-            <ul>
-                <li>Sensor 1: 22°C (OK)</li>
-                <li>Sensor 2: 30°C (Alerta)</li>
-                <!-- ... -->
-            </ul>
-            <a href="/devices">Administrar dispositivos</a>
+        <div class="stat-title text-base-content/70">Temperatura Actual</div>
+        <div class="stat-value text-primary">{currentTemp}°C</div>
+        <div class="stat-desc text-success">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+          Normal
         </div>
-    </section>
+      </div>
+
+      <!-- Promedio -->
+      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
+        <div class="stat-figure text-secondary">
+          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+          </svg>
+        </div>
+        <div class="stat-title text-base-content/70">Promedio 24h</div>
+        <div class="stat-value text-secondary">{avgTemp}°C</div>
+        <div class="stat-desc text-base-content/60">Últimas 24 horas</div>
+      </div>
+
+      <!-- Máxima -->
+      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
+        <div class="stat-figure text-error">
+          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        </div>
+        <div class="stat-title text-base-content/70">Máxima</div>
+        <div class="stat-value text-error">{maxTemp}°C</div>
+        <div class="stat-desc text-base-content/60">Pico del día</div>
+      </div>
+
+      <!-- Mínima -->
+      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
+        <div class="stat-figure text-info">
+          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+          </svg>
+        </div>
+        <div class="stat-title text-base-content/70">Mínima</div>
+        <div class="stat-value text-info">{minTemp}°C</div>
+        <div class="stat-desc text-base-content/60">Mínimo del día</div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Chart -->
+      <div class="lg:col-span-2">
+        <div class="card bg-base-100 shadow-lg border border-base-300">
+          <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="card-title text-xl">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Gráfica de temperatura (24h)
+              </h2>
+              <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                  <li><a>Exportar PNG</a></li>
+                  <li><a>Exportar CSV</a></li>
+                  <li><a>Configurar alertas</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="w-full">
+              <TempChart data={tempData} client:load />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="space-y-6">
+        <!-- Alertas -->
+        <div class="card bg-base-100 shadow-lg border border-base-300">
+          <div class="card-body">
+            <h2 class="card-title text-lg mb-4">
+              <div class="badge badge-error badge-sm"></div>
+              Alertas Activas
+            </h2>
+            <div class="space-y-3">
+              <div class="alert alert-error shadow-sm">
+                <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <div>
+                  <div class="font-medium">Sensor 2 fuera de rango</div>
+                  <div class="text-sm opacity-80">30°C - Excede límite máximo</div>
+                </div>
+              </div>
+              <div class="alert alert-warning shadow-sm">
+                <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <div>
+                  <div class="font-medium">Sensor 4 desconectado</div>
+                  <div class="text-sm opacity-80">Sin señal desde hace 15 min</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-actions justify-end mt-4">
+              <a href="/alerts" class="btn btn-outline btn-sm">Ver todas</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device Status -->
+        <div class="card bg-base-100 shadow-lg border border-base-300">
+          <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="card-title text-lg">
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                </svg>
+                Dispositivos
+              </h2>
+              <div class="badge badge-success badge-outline">5 Online</div>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 bg-success rounded-full"></div>
+                  <div>
+                    <div class="font-medium">Sensor 1</div>
+                    <div class="text-sm text-base-content/60">Sala principal</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="font-bold text-success">22°C</div>
+                  <div class="text-xs text-base-content/60">Normal</div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 bg-error rounded-full"></div>
+                  <div>
+                    <div class="font-medium">Sensor 2</div>
+                    <div class="text-sm text-base-content/60">Cocina</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="font-bold text-error">30°C</div>
+                  <div class="text-xs text-base-content/60">Alerta</div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div class="w-3 h-3 bg-success rounded-full"></div>
+                  <div>
+                    <div class="font-medium">Sensor 3</div>
+                    <div class="text-sm text-base-content/60">Dormitorio</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="font-bold text-success">19°C</div>
+                  <div class="text-xs text-base-content/60">Normal</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-actions justify-end mt-4">
+              <a href="/devices" class="btn btn-primary btn-sm">
+                Administrar
+                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="card bg-gradient-to-r from-primary to-secondary text-primary-content shadow-lg">
+        <div class="card-body">
+          <h3 class="card-title">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Agregar Dispositivo
+          </h3>
+          <p class="opacity-90">Configura un nuevo sensor IoT</p>
+          <div class="card-actions justify-end">
+            <button class="btn btn-ghost text-primary-content">Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-gradient-to-r from-info to-info-focus text-info-content shadow-lg">
+        <div class="card-body">
+          <h3 class="card-title">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Analíticas
+          </h3>
+          <p class="opacity-90">Ver reportes detallados</p>
+          <div class="card-actions justify-end">
+            <a href="/analytics" class="btn btn-ghost text-info-content">Ver</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-gradient-to-r from-warning to-orange-400 text-warning-content shadow-lg">
+        <div class="card-body">
+          <h3 class="card-title">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Configuración
+          </h3>
+          <p class="opacity-90">Ajustar parámetros del sistema</p>
+          <div class="card-actions justify-end">
+            <a href="/settings" class="btn btn-ghost text-warning-content">Configurar</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </AppLayout>
