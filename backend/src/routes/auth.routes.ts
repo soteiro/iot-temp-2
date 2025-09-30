@@ -109,7 +109,21 @@ auth.openapi(loginRoute, async (c: any) => {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
     });
-
+    
+    setCookie(c, 'userName', user.name ?? '', {
+      httpOnly: true,
+      secure: true,
+      sameSite:'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7 
+    })
+    setCookie(c, 'userEmail', user.email ?? '', {
+      httpOnly: true,
+      secure: true,
+      sameSite:'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7
+    })
     const { password: _, ...userWithoutPassword } = user;
     return c.json({ token, refreshToken, user: userWithoutPassword });
   } catch (error: any) {
