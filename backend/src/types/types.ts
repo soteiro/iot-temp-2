@@ -3,6 +3,7 @@ export interface Env {
   DATABASE_URL: string;
   JWT_SECRET: string;
   AUTH_KV: KVNamespace;
+ 
 }
 
 // Definimos los tipos manualmente basándose en el schema de Prisma
