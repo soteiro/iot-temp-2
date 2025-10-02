@@ -52,6 +52,7 @@ model SensorData {
   temperature Float
   humidity    Float
   timestamp   DateTime @default(now())
+  rssi        Int?
   
   // 🔗 Relación con dispositivo
   device_id   String?

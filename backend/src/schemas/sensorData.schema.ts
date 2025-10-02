@@ -13,6 +13,11 @@ export const CreateSensorDataSchema = z.object({
       .min(0, { message: "Humidity must be between 0 and 100" })
       .max(100, { message: "Humidity must be between 0 and 100" })
       .openapi({ example: 45.23 }),
+    rssi: z
+      .number()
+      .openapi({ example: -45 })
+      .optional(),
+    // device_id: z.string().regex(UUID_REGEX, { message: 'Invalid UUID' }).openapi({ example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' }),
 })
 
 export const SensorDataSchema = z.object({
@@ -21,6 +26,7 @@ export const SensorDataSchema = z.object({
     humidity: z.number().openapi({ example: 45.23 }),
     timestamp: z.string().openapi({ example: "2023-10-01T12:34:56Z" }),
     device_id: z.string().regex(UUID_REGEX, { message: 'Invalid UUID' }).openapi({ example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' }),
+    rssi: z.number().openapi({ example: -45 }).optional(),
 });
 
 export type CreateSensorData = z.infer<typeof CreateSensorDataSchema>;

@@ -84,7 +84,7 @@ void loop() {
     StaticJsonDocument<200> jsonDoc;
     jsonDoc["temperature"] = temperature;
     jsonDoc["humidity"] = humidity;
-    // jsonDoc["RSSI"] = RSSI;
+    jsonDoc["rssi"] = RSSI;
     // jsonDoc["device_id"] = String(DEVICE_ID);
 
     String requestBody;
