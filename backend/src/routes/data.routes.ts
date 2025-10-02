@@ -10,7 +10,7 @@ import { ErrorResponseSchema } from "@/schemas/devices.schema";
 const dataRoutes = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>();
 
 dataRoutes.use("/*", authenticateDevice);
-dataRoutes.use("/*", authenticateUser);
+// dataRoutes.use("/*", authenticateUser);
 
 dataRoutes.openapi(
     createRoute({

@@ -39,11 +39,6 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
         return c.json({ error: "Device is inactive" }, 403);
     }
 
-    const user = c.get("user");
-    if(!user || device.user_id !== user.user_id) {
-        return c.json({ error: "Device does not belong to the authenticated user" }, 403);
-    }
-
     c.set("device", device);
     await next();
 };
