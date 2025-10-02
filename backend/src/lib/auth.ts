@@ -10,7 +10,7 @@ type HonoEnv = {
     Variables: Variables
 }
 
-// middleware auth devices
+// middleware auth devices con cache en KV
 export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
     const apiKey = c.req.header("X-API-Key");
     const apiSecret = c.req.header("X-API-Secret");
@@ -18,7 +18,34 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
     if (!apiKey || !apiSecret) {
         return c.json({ error: "Missing API credentials" }, 401);
     }
-    
+
+    // Buscar en KV primero
+    const cacheKey = `device:${apiKey}`;
+    const cachedDevice = await c.env.AUTH_KV.get(cacheKey, "json");
+
+    if (cachedDevice && typeof cachedDevice === 'object' && 'api_secret' in cachedDevice && 'is_active' in cachedDevice) {
+        // Validar el secreto con bcrypt
+        const secretIsValid = await bcrypt.compare(apiSecret, (cachedDevice as { api_secret: string }).api_secret);
+        if (secretIsValid && (cachedDevice as { is_active: boolean }).is_active) {
+            // Ensure cachedDevice matches Device type
+            const deviceFromCache = {
+                device_id: (cachedDevice as any).device_id,
+                name: (cachedDevice as any).name,
+                user_id: (cachedDevice as any).user_id,
+                api_key: (cachedDevice as any).api_key,
+                api_secret: (cachedDevice as any).api_secret,
+                is_active: (cachedDevice as any).is_active,
+                created_at: (cachedDevice as any).created_at,
+                updated_at: (cachedDevice as any).updated_at,
+                last_seen: (cachedDevice as any).last_seen ?? null
+            };
+            c.set("device", deviceFromCache);
+            return await next();
+        }
+        // Si el secreto no es válido, continuar con la validación normal
+    }
+
+    // Si no está en cache o el secreto no es válido, buscar en DB
     const device = await prisma.device.findUnique({
         where: {
             api_key: apiKey,
@@ -34,10 +61,13 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
     if (!secretIsValid) {
         return c.json({ error: "Invalid API credentials" }, 403);
     }
-    
+
     if (!device.is_active){
         return c.json({ error: "Device is inactive" }, 403);
     }
+
+    // Guardar en KV por 1 hora (TTL 3600 segundos)
+    await c.env.AUTH_KV.put(cacheKey, JSON.stringify(device), { expirationTtl: 3600 });
 
     c.set("device", device);
     await next();
