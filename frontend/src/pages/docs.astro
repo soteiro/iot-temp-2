@@ -1,0 +1,188 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Paths from "@/components/docs/paths/Paths.astro";
+import Schemas from "@/components/docs/Schemas.astro";
+import SwaggerUIComponent from "@/components/Docs";
+
+
+
+---
+<Layout>
+  <div class="card bg-base-200 shadow-xl mb-8 p-6">
+    <SwaggerUIComponent client:load />
+  </div>
+</Layout>
+
+<style is:global>
+  /* Contenedor principal de Swagger UI con estilos DaisyUI */
+  .swagger-ui {
+    font-family: inherit !important;
+    color: white !important;
+  }
+
+  /* Ocultar la barra superior de Swagger UI */
+  /* .swagger-ui .topbar {
+    display: none !important;
+  } */
+
+  /* Estilo para los bloques de operaciones (endpoints) */
+  .swagger-ui .opblock {
+    border-radius: 0.5rem !important;
+    border: 1px solid hsl(var(--bc) / 0.2) !important;
+    background: hsl(var(--b1)) !important;
+    margin-bottom: 1rem !important;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+  }
+
+  /* Cabecera de cada operación */
+  .swagger-ui .opblock-summary {
+    background: hsl(var(--b2)) !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    padding: 1rem !important;
+  }
+
+  /* Colores para los métodos HTTP tipo badges DaisyUI */
+  .swagger-ui .opblock.opblock-get .opblock-summary-method {
+    background: hsl(var(--in)) !important;
+    color: hsl(var(--inc)) !important;
+  }
+
+  .swagger-ui .opblock.opblock-post .opblock-summary-method {
+    background: hsl(var(--su)) !important;
+    color: hsl(var(--suc)) !important;
+  }
+
+  .swagger-ui .opblock.opblock-put .opblock-summary-method {
+    background: hsl(var(--wa)) !important;
+    color: hsl(var(--wac)) !important;
+  }
+
+  .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+    background: hsl(var(--er)) !important;
+    color: hsl(var(--erc)) !important;
+  }
+
+  .swagger-ui .opblock.opblock-patch .opblock-summary-method {
+    background: hsl(var(--p)) !important;
+    color: hsl(var(--pc)) !important;
+  }
+
+  /* Botones con estilo DaisyUI */
+  .swagger-ui .btn {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 0.5rem !important;
+    height: 2rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+    font-weight: 600 !important;
+    text-decoration-line: none !important;
+    border-width: 1px !important;
+    border-color: transparent !important;
+    background-color: hsl(var(--b2)) !important;
+    color: hsl(var(--bc)) !important;
+    transition: all 0.2s !important;
+  }
+
+  .swagger-ui .btn:hover {
+    background-color: hsl(var(--b3)) !important;
+  }
+
+  .swagger-ui .execute-wrapper .btn {
+    background-color: hsl(var(--p)) !important;
+    color: hsl(var(--pc)) !important;
+  }
+
+  .swagger-ui .execute-wrapper .btn:hover {
+    background-color: hsl(var(--pf)) !important;
+  }
+
+  /* Inputs y textareas */
+  .swagger-ui input[type="text"],
+  .swagger-ui textarea,
+  .swagger-ui select {
+    height: 3rem !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+    border-radius: 0.5rem !important;
+    border-width: 1px !important;
+    border-color: hsl(var(--bc) / 0.2) !important;
+    background: hsl(var(--b1)) !important;
+    color: hsl(var(--bc)) !important;
+    width: 100% !important;
+  }
+
+  .swagger-ui input[type="text"]:focus,
+  .swagger-ui textarea:focus,
+  .swagger-ui select:focus {
+    outline: 2px solid hsl(var(--p)) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Tablas */
+  .swagger-ui table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .swagger-ui table tbody tr:nth-child(even) {
+    background-color: hsl(var(--b2) / 0.5) !important;
+  }
+
+  .swagger-ui table thead tr {
+    background: hsl(var(--b2)) !important;
+  }
+
+  /* Respuestas y códigos */
+  .swagger-ui .responses-inner {
+    background: hsl(var(--b1)) !important;
+    padding: 1rem !important;
+    border-radius: 0.5rem !important;
+  }
+
+  .swagger-ui .response-col_status {
+    font-weight: 600 !important;
+  }
+
+  /* Modelos y schemas */
+  .swagger-ui .model-box {
+    background: hsl(var(--b2)) !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+  }
+
+  .swagger-ui .model {
+    color: hsl(var(--bc)) !important;
+  }
+
+  /* Parámetros */
+  .swagger-ui .parameters-col_description {
+    color: hsl(var(--bc) / 0.7) !important;
+  }
+
+  /* Links y texto */
+  .swagger-ui a {
+    color: hsl(var(--p)) !important;
+  }
+
+  .swagger-ui a:hover {
+    color: hsl(var(--pf)) !important;
+  }
+
+  /* Info y descripciones */
+  .swagger-ui .info {
+    color: hsl(var(--bc)) !important;
+  }
+
+  .swagger-ui .info .title {
+    color: hsl(var(--bc)) !important;
+  }
+</style>

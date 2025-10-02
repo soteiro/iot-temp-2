@@ -13,7 +13,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       // Redirige a login si no hay cookie
       return context.redirect('/login');
     }
-    // Aquí podrías validar el token si quieres mayor seguridad
   }
 
   return next();
