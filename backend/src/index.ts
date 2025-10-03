@@ -72,17 +72,51 @@ const rateLimiter = async (c: Context, next: Next) => {
 
 app.use('*', rateLimiter)
 
+// Middleware para headers adicionales necesarios para cookies cross-origin
+app.use('*', async (c, next) => {
+  await next();
+  
+  // Agregar headers adicionales para cookies cross-origin
+  c.header('Access-Control-Allow-Credentials', 'true');
+  c.header('Vary', 'Origin');
+  
+  // Headers específicos para mejorar compatibilidad con cookies
+  if (c.req.method === 'OPTIONS') {
+    c.header('Access-Control-Max-Age', '86400'); // 24 horas
+  }
+});
+
 app.use('*', cors({
   origin: (origin, c) => {
-    if (
-      origin === 'http://localhost:4321' ||
-      origin === 'https://name.netlify.app'
-    ) return origin;
+    // Permitir origenes específicos para producción y desarrollo
+    const allowedOrigins = [
+      'http://localhost:4321',
+      'https://temply4432.netlify.app',
+      'http://localhost:3000',
+      'http://localhost:5173'
+    ];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      return origin;
+    }
+    
+    // Para desarrollo local sin origin
+    if (!origin) {
+      return '*';
+    }
+    
     return null;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-API-Secret'],
+  allowHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-API-Key', 
+    'X-API-Secret',
+    'Cookie'
+  ],
   credentials: true,
+  exposeHeaders: ['Set-Cookie']
 }))
 
 

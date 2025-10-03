@@ -1,6 +1,5 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 import { Env, Variables } from '@/types/types';
 
@@ -10,8 +9,25 @@ type HonoEnv = {
     Variables: Variables
 }
 
-// middleware auth devices con cache en KV
+// Función optimizada para hashear con SHA-256
+async function hashApiSecret(secret: string, salt: string = 'iot-device-salt-2024'): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(secret + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Función optimizada para verificar API secret
+async function verifyApiSecret(plainSecret: string, hashedSecret: string): Promise<boolean> {
+    const hashedInput = await hashApiSecret(plainSecret);
+    return hashedInput === hashedSecret;
+}
+
+// middleware auth devices ULTRA OPTIMIZADO
 export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
+    const startTime = Date.now();
+    
     const apiKey = c.req.header("X-API-Key");
     const apiSecret = c.req.header("X-API-Secret");
 
@@ -24,10 +40,10 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
     const cachedDevice = await c.env.AUTH_KV.get(cacheKey, "json");
 
     if (cachedDevice && typeof cachedDevice === 'object' && 'api_secret' in cachedDevice && 'is_active' in cachedDevice) {
-        // Validar el secreto con bcrypt
-        const secretIsValid = await bcrypt.compare(apiSecret, (cachedDevice as { api_secret: string }).api_secret);
+        // Verificación SHA-256 RÁPIDA (~1-2ms)
+        const secretIsValid = await verifyApiSecret(apiSecret, (cachedDevice as { api_secret: string }).api_secret);
+        
         if (secretIsValid && (cachedDevice as { is_active: boolean }).is_active) {
-            // Ensure cachedDevice matches Device type
             const deviceFromCache = {
                 device_id: (cachedDevice as any).device_id,
                 name: (cachedDevice as any).name,
@@ -39,16 +55,29 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
                 updated_at: (cachedDevice as any).updated_at,
                 last_seen: (cachedDevice as any).last_seen ?? null
             };
+            
             c.set("device", deviceFromCache);
+            
+            const authTime = Date.now() - startTime;
+            console.log(`⚡ Fast auth from cache: ${authTime}ms`);
+            
             return await next();
         }
-        // Si el secreto no es válido, continuar con la validación normal
     }
 
-    // Si no está en cache o el secreto no es válido, buscar en DB
+    // Si no está en cache, buscar en DB
     const device = await prisma.device.findUnique({
-        where: {
-            api_key: apiKey,
+        where: { api_key: apiKey },
+        select: {
+            device_id: true,
+            name: true,
+            user_id: true,
+            api_key: true,
+            api_secret: true,
+            is_active: true,
+            created_at: true,
+            updated_at: true,
+            last_seen: true
         }
     });
 
@@ -56,24 +85,29 @@ export const authenticateDevice = async (c: Context<HonoEnv>, next: Next) => {
         return c.json({ error: "Invalid API credentials" }, 403);
     }
 
-    const secretIsValid = await bcrypt.compare(apiSecret, device.api_secret);
+    // Verificación SHA-256 desde DB
+    const secretIsValid = await verifyApiSecret(apiSecret, device.api_secret);
 
     if (!secretIsValid) {
         return c.json({ error: "Invalid API credentials" }, 403);
     }
 
-    if (!device.is_active){
+    if (!device.is_active) {
         return c.json({ error: "Device is inactive" }, 403);
     }
 
-    // Guardar en KV por 1 hora (TTL 3600 segundos)
-    await c.env.AUTH_KV.put(cacheKey, JSON.stringify(device), { expirationTtl: 3600 });
+    // Cache por más tiempo ya que la verificación es rápida
+    await c.env.AUTH_KV.put(cacheKey, JSON.stringify(device), { expirationTtl: 7200 }); // 2 horas
 
     c.set("device", device);
+    
+    const authTime = Date.now() - startTime;
+    console.log(`🔍 Full auth from DB: ${authTime}ms`);
+    
     await next();
 };
 
-// middleware auth user
+// middleware auth user (mantener bcrypt para usuarios, solo optimizar devices)
 export const authenticateUser = async (c: Context<HonoEnv>, next: Next) => {
     const authHeader = c.req.header("Authorization");
     
@@ -81,7 +115,6 @@ export const authenticateUser = async (c: Context<HonoEnv>, next: Next) => {
         return c.json({ error: "Missing or invalid Authorization header" }, 401);
     }
 
-    // remove Bearer
     const token = authHeader.split(" ")[1];
 
     try {
@@ -91,7 +124,6 @@ export const authenticateUser = async (c: Context<HonoEnv>, next: Next) => {
             return c.json({ error: 'Invalid token type. Cannot use refresh token for authentication.' }, 401);
         }
         
-        // Verificar que el usuario existe
         const user = await prisma.user.findUnique({
             where: { user_id: payload.sub as string }
         });
@@ -106,3 +138,38 @@ export const authenticateUser = async (c: Context<HonoEnv>, next: Next) => {
         return c.json({ error: 'Invalid token' }, 401);
     }
 };
+
+// Función helper para migrar devices existentes (ejecutar una sola vez)
+export async function migrateDevicesToSHA256() {
+    console.log('🔄 Migrando devices de bcrypt a SHA-256...');
+    
+    const devices = await prisma.device.findMany({
+        where: {
+            // Asumir que bcrypt hashes empiezan con $2b$
+            api_secret: {
+                startsWith: '$2b$'
+            }
+        }
+    });
+    
+    for (const device of devices) {
+        // Esto solo funcionará si tienes los secrets originales guardados
+        // O si quieres regenerar todos los secrets
+        console.log(`Migrating device ${device.device_id}...`);
+        
+        // Opción 1: Regenerar secret (más seguro)
+        const newSecret = crypto.randomUUID();
+        const hashedSecret = await hashApiSecret(newSecret);
+        
+        await prisma.device.update({
+            where: { device_id: device.device_id },
+            data: { 
+                api_secret: hashedSecret,
+                // Guardar el secret plano temporalmente para que puedas actualizar el dispositivo
+                // secret_plain: newSecret  // Agregar este campo temporal a tu schema
+            }
+        });
+    }
+    
+    console.log(`✅ Migrated ${devices.length} devices`);
+}
