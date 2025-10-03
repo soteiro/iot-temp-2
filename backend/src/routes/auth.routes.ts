@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { setCookie } from 'hono/cookie';
+import { setCookie, getCookie } from 'hono/cookie';
 import { sign, verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma'; 
@@ -95,35 +95,42 @@ auth.openapi(loginRoute, async (c: any) => {
     const token = await sign({ sub: user.user_id, name: user.name, email: user.email, exp: now + expiredIn }, c.env.JWT_SECRET);
     const refreshToken = await sign({ sub: user.user_id, type: 'refresh', exp: now + (60 * 60 * 24 * 7) }, c.env.JWT_SECRET);
 
-     setCookie(c, 'sb-access-token', token, {
+     // Configurar cookies para cross-origin (frontend en Netlify, backend en Cloudflare)
+    const cookieOptions = {
       httpOnly: true,
       secure: true,
-      sameSite: 'Lax',
+      sameSite: 'None' as const,
       path: '/',
+      // Importante: No establecer domain para que funcione cross-origin
+      // domain: undefined permite que la cookie sea enviada a cualquier dominio
+    };
+
+    setCookie(c, 'sb-access-token', token, {
+      ...cookieOptions,
       maxAge: expiredIn,
     });
+    
     setCookie(c, 'sb-refresh-token', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'Lax',
-      path: '/',
+      ...cookieOptions,
       maxAge: 60 * 60 * 24 * 7,
     });
-    
+
+    // Cookies accesibles desde el cliente (para mostrar info del usuario)
     setCookie(c, 'userName', user.name ?? '', {
-      httpOnly: true,
+      httpOnly: false,    // Accesible desde JavaScript del cliente
       secure: true,
-      sameSite:'lax',
+      sameSite: 'None' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7 
-    })
+    });
+    
     setCookie(c, 'userEmail', user.email ?? '', {
-      httpOnly: true,
+      httpOnly: false,    // Accesible desde JavaScript del cliente
       secure: true,
-      sameSite:'lax',
+      sameSite: 'None' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7
-    })
+    });
     const { password: _, ...userWithoutPassword } = user;
     return c.json({ token, refreshToken, user: userWithoutPassword });
   } catch (error: any) {
@@ -187,17 +194,39 @@ const validateRoute = createRoute({
 
 auth.openapi(validateRoute, async (c: any) => {
   try {
-    // Primero intenta leer el token de la cookie
-    const token = c.req.cookie('sb-access-token')
-      // O de la cabecera Authorization si quieres soportar ambos métodos
-      || c.req.header('Authorization')?.replace('Bearer ', '');
+    // Intentar obtener el token de múltiples fuentes
+    let token = getCookie(c, 'sb-access-token');
+    
+    console.log('🍪 Cookie token:', token ? 'exists' : 'missing');
+    
+    // Si no hay cookie, intentar con el header Authorization
     if (!token) {
+      const authHeader = c.req.header('Authorization');
+      console.log('🔐 Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'missing');
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.replace('Bearer ', '');
+      }
+    }
+    
+    if (!token) {
+      console.log('❌ No token found in cookies or Authorization header');
       return c.json({ error: 'No token provided' }, 401);
     }
 
+    console.log('🔍 Token found, attempting to verify...');
     const payload = await verify(token, c.env.JWT_SECRET);
+    
+    // Verificar que no sea un refresh token
+    if (payload.type === 'refresh') {
+      console.log('❌ Invalid token type: refresh token used for authentication');
+      return c.json({ error: 'Invalid token type. Cannot use refresh token for authentication.' }, 401);
+    }
+    
+    console.log('✅ Token validated successfully for user:', payload.sub);
     return c.json({ user: payload }, 200);
   } catch (error: any) {
+    console.error('❌ Token validation error:', error);
     return c.json({ error: 'Failed to validate token: ' + error.message }, 401);
   }
 });
@@ -214,31 +243,34 @@ const logOut = createRoute({
 });
 
 auth.openapi(logOut, async (c) => {
-  // Para "cerrar sesión" simplemente eliminamos las cookies en el cliente
+  // Configuración consistente para limpiar cookies cross-origin
+  const clearCookieOptions = {
+    secure: true,
+    sameSite: 'None' as const,
+    path: '/',
+    maxAge: 0,
+  };
+
   setCookie(c, 'sb-access-token', '', {
+    ...clearCookieOptions,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
-});
+  });
+  
   setCookie(c, 'sb-refresh-token', '', {
+    ...clearCookieOptions,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
   });
+  
   setCookie(c, 'userName', '', {
+    ...clearCookieOptions,
     httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
   });
+  
   setCookie(c, 'userEmail', '', {
+    ...clearCookieOptions,
     httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
   });
+  
   return c.json({ message: 'Logged out successfully' });
 });
 
