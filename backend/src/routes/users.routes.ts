@@ -5,6 +5,8 @@ import { UserSchema, ErrorSchema } from "@/schemas/auth.schemas";
 import { verify } from 'hono/jwt';
 import { getCookie } from 'hono/cookie';
 
+// TODO: añadir test
+
 const userRoutes = new OpenAPIHono<{ Bindings: Env }>();
 
 const profileRoute = createRoute({
