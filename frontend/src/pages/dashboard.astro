@@ -4,9 +4,6 @@ import TempChart from "@/components/TempChart.tsx";
 
 const { title } = Astro.props;
 
-// Obtener el token de la cookie
-const token = Astro.cookies.get('sb-access-token')?.value;
-
 // Datos de ejemplo con timestamps
 const tempData = [
   { time: Date.now() - 22 * 60 * 60 * 1000, temperature: 20, sensor: "sensor1" }, // 22h atrás
@@ -294,3 +291,5 @@ const currentTemp = temperatures[temperatures.length - 1];
     </div>
   </div>
 </AppLayout>
+
+

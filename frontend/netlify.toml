@@ -1,0 +1,13 @@
+[[redirects]]
+  # Cualquier petición que tu frontend haga a una URL que empiece con /api/...
+  from = "/api/*"
+
+  # Netlify la reenviará secretamente a tu backend en Cloudflare.
+  # El :splat al final copia lo que sea que venga después de /api/.
+  # Ejemplo: /api/auth/login -> https://backend.diego-sarq.workers.dev/auth/login
+  to = "https://backend.diego-sarq.workers.dev/:splat"
+  
+
+  # Status 200 significa "OK, procesa esto aquí", convirtiéndolo en un proxy.
+  # Si fuera 301, sería una redirección y no funcionaría para esto.
+  status = 200

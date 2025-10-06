@@ -12,3 +12,5 @@ prisma/dev.db
 prisma/dev.db-journal
 docs
 TESTING.md
+# Local Netlify folder
+.netlify
