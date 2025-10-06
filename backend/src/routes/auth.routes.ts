@@ -18,7 +18,7 @@ import {
 
 // We use OpenAPIHono for routes that will be documented
 const auth = new OpenAPIHono<{ Bindings: Env }>();
-
+const [SECONDS, MINUTES, HOURS, DAYS] = [1, 60, 3600, 86400];
 // --- User Registration Route ---
 const registerRoute = createRoute({
   method: 'post',
@@ -89,20 +89,17 @@ auth.openapi(loginRoute, async (c: any) => {
       return c.json({ error: 'Invalid email or password' }, 401);
     }
 
-    const expiredIn = 60 * 60; // 1 hour
+    const expiredIn = 30 * MINUTES; 
     const now = Math.floor(Date.now() / 1000);
 
     const token = await sign({ sub: user.user_id, name: user.name, email: user.email, exp: now + expiredIn }, c.env.JWT_SECRET);
-    const refreshToken = await sign({ sub: user.user_id, type: 'refresh', exp: now + (60 * 60 * 24 * 7) }, c.env.JWT_SECRET);
+    const refreshToken = await sign({ sub: user.user_id, type: 'refresh', exp: now + (7 * DAYS) }, c.env.JWT_SECRET);
 
-     // Configurar cookies para cross-origin (frontend en Netlify, backend en Cloudflare)
     const cookieOptions = {
       httpOnly: true,
       secure: true,
       sameSite: 'None' as const,
       path: '/',
-      // Importante: No establecer domain para que funcione cross-origin
-      // domain: undefined permite que la cookie sea enviada a cualquier dominio
     };
 
     setCookie(c, 'sb-access-token', token, {
@@ -112,24 +109,18 @@ auth.openapi(loginRoute, async (c: any) => {
     
     setCookie(c, 'sb-refresh-token', refreshToken, {
       ...cookieOptions,
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 7 * DAYS,
     });
 
-    // Cookies accesibles desde el cliente (para mostrar info del usuario)
+
     setCookie(c, 'userName', user.name ?? '', {
-      httpOnly: false,    // Accesible desde JavaScript del cliente
-      secure: true,
-      sameSite: 'None' as const,
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7 
+      ...cookieOptions,
+      maxAge: 7 * DAYS
     });
     
     setCookie(c, 'userEmail', user.email ?? '', {
-      httpOnly: false,    // Accesible desde JavaScript del cliente
-      secure: true,
-      sameSite: 'None' as const,
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7
+      ...cookieOptions,
+      maxAge: 7 * DAYS
     });
     const { password: _, ...userWithoutPassword } = user;
     return c.json({ token, refreshToken, user: userWithoutPassword });
@@ -140,7 +131,6 @@ auth.openapi(loginRoute, async (c: any) => {
 });
 
 
-// --- Refresh Token Route ---
 const refreshRoute = createRoute({
     method: 'post',
     path: '/refresh',
@@ -169,7 +159,7 @@ auth.openapi(refreshRoute, async (c: any) => {
         }
 
         const newAccessToken = await sign({ sub: user.user_id, name: user.name, email: user.email, exp: Math.floor(Date.now() / 1000) + (60 * 60) }, c.env.JWT_SECRET);
-        return c.json({ token: newAccessToken });
+        return c.json({ accessToken: newAccessToken });
 
     } catch (error: any) {
         if (error.name === 'JwtTokenExpired' || error.name === 'JwtTokenInvalid') {
@@ -197,37 +187,29 @@ auth.openapi(validateRoute, async (c: any) => {
     // Intentar obtener el token de múltiples fuentes
     let token = getCookie(c, 'sb-access-token');
     
-    console.log('🍪 Cookie token:', token ? 'exists' : 'missing');
-    
     // Si no hay cookie, intentar con el header Authorization
-    if (!token) {
-      const authHeader = c.req.header('Authorization');
-      console.log('🔐 Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'missing');
-      
+    if (!token) { 
+      const authHeader = c.req.header('Authorization');      
       if (authHeader && authHeader.startsWith('Bearer ')) {
         token = authHeader.replace('Bearer ', '');
       }
     }
     
     if (!token) {
-      console.log('❌ No token found in cookies or Authorization header');
       return c.json({ error: 'No token provided' }, 401);
     }
 
-    console.log('🔍 Token found, attempting to verify...');
     const payload = await verify(token, c.env.JWT_SECRET);
     
     // Verificar que no sea un refresh token
     if (payload.type === 'refresh') {
-      console.log('❌ Invalid token type: refresh token used for authentication');
       return c.json({ error: 'Invalid token type. Cannot use refresh token for authentication.' }, 401);
     }
     
-    console.log('✅ Token validated successfully for user:', payload.sub);
-    return c.json({ user: payload }, 200);
+    return c.json({ valid: true, user: payload }, 200);
   } catch (error: any) {
-    console.error('❌ Token validation error:', error);
-    return c.json({ error: 'Failed to validate token: ' + error.message }, 401);
+    console.error('Token validation error:', error);
+    return c.json({ valid: false, error: 'Failed to validate token: ' + error.message }, 401);
   }
 });
 
