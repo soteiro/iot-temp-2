@@ -178,7 +178,7 @@ describe('Auth routes (unit)', () => {
     const res = await app.fetch(req, { JWT_SECRET: 'test-secret' } as any);
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toHaveProperty('token', 'new-access-token');
+    expect(json).toHaveProperty('accessToken', 'new-access-token');
   });
 
   it('POST /refresh - token con tipo incorrecto responde 401', async () => {
