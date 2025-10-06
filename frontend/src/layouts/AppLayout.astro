@@ -41,13 +41,35 @@ if (!userName || !userEmail) {
 }
 ---
 <!DOCTYPE html>
-<html lang="es" transition:name="fade">
+<html lang="es" transition:name="fade" data-theme="dark">
 <head>
     <meta charset="UTF-8">
+    <script is:inline>
+        const html = document.documentElement
+        const theme = html.getAttribute('data-theme')
+        const themeKey = 'theme-preference'
+        const toggleTheme = ()=>{
+            const currentTheme = html.getAttribute('data-theme')
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
+            html.setAttribute('data-theme', newTheme)
+            localStorage.setItem(themeKey, newTheme)
+        }	
+        
+        try{
+            const storedTheme = localStorage.getItem(themeKey)
+            if(storedTheme && (storedTheme === 'dark' || storedTheme === 'light')){
+                if(storedTheme !== theme) html.setAttribute('data-theme', storedTheme)
+            }
+        } catch{
+            console.warn('No se pudo acceder a localStorage')
+        }
+        window.toggleTheme = toggleTheme;
+
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
 </head>
-<body data-theme="night" class="h-screen overflow-hidden">
+<body class="h-screen overflow-hidden">
     <div class="flex h-full">
         <Aside userEmail={userEmail} userName={userName} />
         
