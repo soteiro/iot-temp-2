@@ -10,7 +10,7 @@ type HonoEnv = {
 }
 
 // Función optimizada para hashear con SHA-256
-async function hashApiSecret(secret: string, salt: string = 'iot-device-salt-2024'): Promise<string> {
+export async function hashApiSecret(secret: string, salt: string = 'iot-device-salt-2024'): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(secret + salt);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);

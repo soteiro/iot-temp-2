@@ -1,8 +1,7 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { authenticateUser } from "@/lib/auth";
+import { authenticateUser, hashApiSecret } from "@/lib/auth";
 import { Env, Variables } from "@/types/types";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { CreateDeviceSchema, CreateDeviceResponseSchema, ErrorResponseSchema } from "../schemas/devices.schema";
 
 const deviceRoutes = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>();
@@ -68,7 +67,7 @@ deviceRoutes.openapi(createDeviceRoute, async (c : any) => {
 
     const apiKey = Array.from(apiKeyBytes, byte => byte.toString(16).padStart(2, "0")).join("");
     const apiSecret = Array.from(apiSecretBytes, byte => byte.toString(16).padStart(2, "0")).join("");
-    const hashedApiSecret = await bcrypt.hash(apiSecret, 10);
+    const hashedApiSecret = await hashApiSecret(apiSecret);
 
     const device = await prisma.device.create({
       data:{
