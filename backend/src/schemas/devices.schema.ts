@@ -37,7 +37,27 @@ export const ErrorResponseSchema = z.object({
     error: z.string().openapi({ example: 'Error message' }),
 }).openapi('ErrorResponse');
 
+export const GetDevicesResponseSchema = z.object({
+    devices: z.array(DeviceSchema)
+}).openapi('GetDevicesResponse');
+
+export const DeleteDeviceResponseSchema = z.object({
+    message: z.string().openapi({ example: 'Device deleted successfully' }),
+}).openapi('DeleteDeviceResponse');
+
+export const RenameDeviceSchema = z.object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters"}).max(50, { message: "Name must be at most 50 characters"}),
+}).openapi('RenameDeviceRequest');
+
+export const UpdateDeviceStatusSchema = z.object({
+    is_active: z.boolean().openapi({ example: false }),
+}).openapi('UpdateDeviceStatusRequest');
+
 export type CreateDeviceInput = z.infer<typeof CreateDeviceSchema>;
 export type Device = z.infer<typeof DeviceSchema>;
 export type CreateDeviceResponse = z.infer<typeof CreateDeviceResponseSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
+export type GetDevicesResponse = z.infer<typeof GetDevicesResponseSchema>;
+export type DeleteDeviceResponse = z.infer<typeof DeleteDeviceResponseSchema>;
+export type RenameDeviceInput = z.infer<typeof RenameDeviceSchema>;
+export type UpdateDeviceStatusInput = z.infer<typeof UpdateDeviceStatusSchema>;
