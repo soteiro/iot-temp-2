@@ -12,8 +12,6 @@ RenameDeviceSchema,
 UpdateDeviceStatusSchema,
 } from "../schemas/devices.schema";
 
-//TODO: escribir tests faltantes y refactorizar codigo repetido
-
 const deviceRoutes = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>();
 
 const createDeviceRoute = createRoute({
@@ -102,7 +100,6 @@ deviceRoutes.openapi(createDeviceRoute, async (c : any) => {
   }
 });
 
-// TODO: agregar test de aqui hacia abajo
 const getDevicesRoute = createRoute({
   method: "get",
   path: "/",
@@ -165,7 +162,6 @@ deviceRoutes.openapi(getDevicesRoute, async (c: any) => {
 })
 
 
-// TODO: agregar test
 const deleteDeviceRoute = createRoute({
   method: "delete",
   path: "/{deviceId}",
