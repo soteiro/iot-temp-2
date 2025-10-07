@@ -1,5 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+
+
 ---
 <Layout title="Login">
 <main class="flex gap-4 flex-col items-center justify-center min-h-screen p-4">
@@ -14,6 +16,11 @@ import Layout from '@/layouts/Layout.astro';
         <br />
         <button class="btn btn-primary" type="submit">Login</button>
       </form>
+      <div class="block">
+    <span id="loadingSpinner" 
+    class="loading loading-ring loading-2xl text-primary hidden">
+  </span>
+    </div>
     </section>
     <h2>Usuarios de prueba</h2>
     <section class="flex flex-col gap-4 items-center justify-center p-4 shadow-lg mb-2">
@@ -26,20 +33,20 @@ import Layout from '@/layouts/Layout.astro';
 <script>
   
   const loginForm = document.getElementById('loginForm');
-
-  if (loginForm) {
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  if (loginForm && loadingSpinner) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const emailInput = document.getElementById('email') as HTMLInputElement;
       const passwordInput = document.getElementById('password') as HTMLInputElement;
-
+      loadingSpinner.classList.remove('hidden');
       if (!emailInput.value || !passwordInput.value) {
         alert('Por favor ingresa email y contraseña');
         return;
       }
       
       try {
-        const response = await fetch('api/auth/login', {
+        const response = await fetch('http://localhost:8787/auth/login', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -52,6 +59,7 @@ import Layout from '@/layouts/Layout.astro';
           window.location.href = '/dashboard';
 
         } else {
+          loadingSpinner.classList.add('hidden');
           const errorData = await response.json();
           alert(`Error: ${errorData.message || 'Error en el login'}`);
         }
