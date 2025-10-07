@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 import { CreateNewDevice } from '@/components/devices/ButtonNewDevice';
 const userToken = Astro.cookies.get('sb-access-token')?.value || '';
-const url = 'http://localhost:8787/devices';
+const url = 'https://backend.diego-sarq.workers.dev/devices';
 import { DeviceList } from '@/components/devices/DeviceList';
 ---
 <AppLayout title="Dispositivos IoT">

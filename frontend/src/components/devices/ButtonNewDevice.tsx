@@ -6,7 +6,7 @@ interface CreateNewDeviceProps {
 export function CreateNewDevice({ userToken, url }: CreateNewDeviceProps) {
     const [open, setOpen] = useState(false);
     const [deviceName, setDeviceName] = useState('');
-    const [apiKeys, setApiKeys] = useState<{ api_key: string, api_secret: string } | null>(null);
+    const [apiKeys, setApiKeys] = useState<{ api_key: string, api_secret: string, device_id:string } | null>(null);
 
     const createDevice = async (userToken: string) => {
         try {
@@ -24,7 +24,8 @@ export function CreateNewDevice({ userToken, url }: CreateNewDeviceProps) {
             const data = await response.json();
             setApiKeys({
                 api_key: data.device.api_key,
-                api_secret: data.device.api_secret
+                api_secret: data.device.api_secret,
+                device_id: data.device.device_id
             });
         } catch (error) {
             alert('No se pudo crear el dispositivo');
@@ -60,7 +61,8 @@ export function CreateNewDevice({ userToken, url }: CreateNewDeviceProps) {
                         {apiKeys && (
                             <div className="alert alert-success mt-2">
                                 <span>
-                                    <b>API Key:</b> {apiKeys.api_key}<br />
+                                    <b>API Key:</b> {apiKeys.api_key} <br />
+                                    <b>Device ID:</b> {apiKeys.device_id}<br />
                                     <b>API Secret:</b> {apiKeys.api_secret}
                                 </span>
                             </div>
