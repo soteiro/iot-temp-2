@@ -512,4 +512,85 @@ describe('Device routes (unit)', () => {
             expect(res.status).toBe(400);
         });
     });
+
+    // ========== GET /devices/{deviceId} ==========
+    describe('GET /devices/{deviceId}', () => {
+        it('returns device info for authenticated user', async () => {
+            const prismaMod = await import('@/lib/prisma') as any;
+            prismaMod.prisma.device.findUnique.mockResolvedValue({
+                device_id: 'device-123',
+                name: 'Test Device',
+                user_id: 'a1b2c3d4-e5f6-1890-a234-567890abcdef',
+                api_key: 'test-key',
+                is_active: true,
+                created_at: '2023-10-01T12:34:56Z',
+                updated_at: '2023-10-01T12:34:56Z'
+            });
+
+            const { default: deviceRoutes } = await import('@/routes/devices.routes');
+
+            const req = new Request('http://localhost/device-123', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': 'Bearer valid-token'
+                },
+            });
+
+            const res = await deviceRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+
+            expect(res.status).toBe(200);
+            const responseBody = await res.json() as any;
+            expect(responseBody).toHaveProperty('device');
+            expect(responseBody.device.device_id).toBe('device-123');
+            expect(responseBody.device.name).toBe('Test Device');
+        });
+
+        it('returns 404 when device not found', async () => {
+            const prismaMod = await import('@/lib/prisma') as any;
+            prismaMod.prisma.device.findUnique.mockResolvedValue(null);
+
+            const { default: deviceRoutes } = await import('@/routes/devices.routes');
+
+            const req = new Request('http://localhost/device-999', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': 'Bearer valid-token'
+                },
+            });
+
+            const res = await deviceRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+
+            expect(res.status).toBe(404);
+            const responseBody = await res.json() as any;
+            expect(responseBody.error).toBe('Device not found');
+        });
+
+        it('returns 403 when user does not own device', async () => {
+            const prismaMod = await import('@/lib/prisma') as any;
+            prismaMod.prisma.device.findUnique.mockResolvedValue({
+                device_id: 'device-123',
+                name: 'Test Device',
+                user_id: 'different-user-id',
+                api_key: 'test-key',
+                is_active: true,
+                created_at: '2023-10-01T12:34:56Z',
+                updated_at: '2023-10-01T12:34:56Z'
+            });
+
+            const { default: deviceRoutes } = await import('@/routes/devices.routes');
+
+            const req = new Request('http://localhost/device-123', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': 'Bearer valid-token'
+                },
+            });
+
+            const res = await deviceRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+
+            expect(res.status).toBe(403);
+            const responseBody = await res.json() as any;
+            expect(responseBody.error).toBe('Not authorized to view this device');
+        });
+    });
 });

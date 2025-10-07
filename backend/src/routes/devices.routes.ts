@@ -2,17 +2,17 @@ import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { authenticateUser, hashApiSecret } from "@/lib/auth";
 import { Env, Variables } from "@/types/types";
 import { prisma } from "@/lib/prisma";
-import { 
-CreateDeviceSchema,
-CreateDeviceResponseSchema,
-ErrorResponseSchema,
-GetDevicesResponseSchema,
-DeleteDeviceResponseSchema,
-RenameDeviceSchema,
-UpdateDeviceStatusSchema,
+import {
+  CreateDeviceSchema,
+  CreateDeviceResponseSchema,
+  ErrorResponseSchema,
+  GetDevicesResponseSchema,
+  DeleteDeviceResponseSchema,
+  RenameDeviceSchema,
+  UpdateDeviceStatusSchema,
 } from "../schemas/devices.schema";
 
-const deviceRoutes = new OpenAPIHono<{ Bindings: Env, Variables: Variables }>();
+const deviceRoutes = new OpenAPIHono<{ Bindings: Env; Variables: Variables }>();
 
 const createDeviceRoute = createRoute({
   method: "post",
@@ -58,7 +58,8 @@ const createDeviceRoute = createRoute({
 // Aplicar middleware de autenticación
 deviceRoutes.use("/*", authenticateUser);
 
-deviceRoutes.openapi(createDeviceRoute, async (c : any) => {
+//create device
+deviceRoutes.openapi(createDeviceRoute, async (c: any) => {
   try {
     const user = c.get("user");
     const { name } = c.req.valid("json");
@@ -73,12 +74,16 @@ deviceRoutes.openapi(createDeviceRoute, async (c : any) => {
     crypto.getRandomValues(apiKeyBytes);
     crypto.getRandomValues(apiSecretBytes);
 
-    const apiKey = Array.from(apiKeyBytes, byte => byte.toString(16).padStart(2, "0")).join("");
-    const apiSecret = Array.from(apiSecretBytes, byte => byte.toString(16).padStart(2, "0")).join("");
+    const apiKey = Array.from(apiKeyBytes, (byte) =>
+      byte.toString(16).padStart(2, "0")
+    ).join("");
+    const apiSecret = Array.from(apiSecretBytes, (byte) =>
+      byte.toString(16).padStart(2, "0")
+    ).join("");
     const hashedApiSecret = await hashApiSecret(apiSecret);
 
     const device = await prisma.device.create({
-      data:{
+      data: {
         name,
         user_id: user.user_id,
         api_key: apiKey,
@@ -87,13 +92,15 @@ deviceRoutes.openapi(createDeviceRoute, async (c : any) => {
       },
     });
 
-    return c.json({
-      device: {
-        ...device,
-        api_secret: apiSecret,
+    return c.json(
+      {
+        device: {
+          ...device,
+          api_secret: apiSecret,
+        },
       },
-    }, 201);
-
+      201
+    );
   } catch (error: any) {
     console.error("Error creating device:", error);
     return c.json({ error: "Failed to create device: " + error.message }, 500);
@@ -132,6 +139,7 @@ const getDevicesRoute = createRoute({
   },
 });
 
+// get all devices for authenticated user
 deviceRoutes.openapi(getDevicesRoute, async (c: any) => {
   try {
     const user = c.get("user");
@@ -154,14 +162,13 @@ deviceRoutes.openapi(getDevicesRoute, async (c: any) => {
     });
 
     return c.json({ devices }, 200);
-
   } catch (error: any) {
     console.error("Error fetching devices:", error);
     return c.json({ error: "Failed to fetch devices: " + error.message }, 500);
   }
-})
+});
 
-
+//delete device
 const deleteDeviceRoute = createRoute({
   method: "delete",
   path: "/{deviceId}",
@@ -193,7 +200,6 @@ const deleteDeviceRoute = createRoute({
     },
   },
 });
-
 
 deviceRoutes.openapi(deleteDeviceRoute, async (c: any) => {
   try {
@@ -237,18 +243,21 @@ deviceRoutes.openapi(deleteDeviceRoute, async (c: any) => {
       where: { device_id: deviceId },
     });
 
-    return c.json({
-      message: "Device deleted successfully",
-      device_id: deviceId,
-      name: device.name,
-    }, 200);
-
+    return c.json(
+      {
+        message: "Device deleted successfully",
+        device_id: deviceId,
+        name: device.name,
+      },
+      200
+    );
   } catch (error: any) {
     console.error("Error deleting device:", error);
     return c.json({ error: "Failed to delete device: " + error.message }, 500);
   }
 });
 
+// rename device
 const renameDeviceRoute = createRoute({
   method: "patch",
   path: "/{deviceId}/rename",
@@ -278,11 +287,11 @@ const renameDeviceRoute = createRoute({
           schema: ErrorResponseSchema,
         },
       },
-    }
+    },
   },
 });
 
-deviceRoutes.openapi(renameDeviceRoute, async (c: any) => { 
+deviceRoutes.openapi(renameDeviceRoute, async (c: any) => {
   try {
     const user = c.get("user");
     const { deviceId } = c.req.param();
@@ -323,20 +332,23 @@ deviceRoutes.openapi(renameDeviceRoute, async (c: any) => {
         created_at: true,
         updated_at: true,
       },
-    
     });
 
-    return c.json({
-      message: "Device renamed successfully",
-      device: updatedDevice,
-      name: updatedDevice.name,
-    }, 200);
+    return c.json(
+      {
+        message: "Device renamed successfully",
+        device: updatedDevice,
+        name: updatedDevice.name,
+      },
+      200
+    );
   } catch (error: any) {
     console.error("Error renaming device:", error);
     return c.json({ error: "Failed to rename device: " + error.message }, 500);
   }
 });
 
+//update device status (active/inactive)
 const updateDeviceStatusRoute = createRoute({
   method: "patch",
   path: "/{deviceId}/status",
@@ -409,16 +421,88 @@ deviceRoutes.openapi(updateDeviceStatusRoute, async (c: any) => {
       },
     });
 
-    return c.json({
-      message: "Device deactivated successfully",
-      device: updatedDevice,
-    }, 200);
+    return c.json(
+      {
+        message: "Device deactivated successfully",
+        device: updatedDevice,
+      },
+      200
+    );
   } catch (error: any) {
     console.error("Error deactivating device:", error);
-    return c.json({ error: "Failed to deactivate device: " + error.message }, 500);
+    return c.json(
+      { error: "Failed to deactivate device: " + error.message },
+      500
+    );
   }
 });
 
+const GetDeviceInfoRoute = createRoute({
+  method: "get",
+  path: "/{deviceId}",
+  summary: "Obtener información de un dispositivo específico",
+  responses: {
+    200: {
+      description: "Información del dispositivo",
+      content: {
+        "application/json": {
+          schema: CreateDeviceResponseSchema,
+        },
+      },
+      401: {
+        description: "No autenticado",
+        content: {
+          "application/json": {
+            schema: ErrorResponseSchema,
+          },
+        },
+        404: {
+          description: "Dispositivo no encontrado",
+          content: {
+            "application/json": {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
+deviceRoutes.openapi(GetDeviceInfoRoute, async (c: any) => {
+  try {
+    const user = c.get("user");
+    const { deviceId } = c.req.param();
 
+    if (!user) {
+      return c.json({ error: "User not authenticated" }, 401);
+    }
+
+    const device = await prisma.device.findUnique({
+      where: { device_id: deviceId },
+      select: {
+        device_id: true,
+        name: true,
+        user_id: true,
+        api_key: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    if (!device) {
+      return c.json({ error: "Device not found" }, 404);
+    }
+
+    if (device.user_id !== user.user_id) {
+      return c.json({ error: "Not authorized to view this device" }, 403);
+    }
+
+    return c.json({ device }, 200);
+  } catch (error: any) {
+    console.error("Error fetching device info:", error);
+    return c.json({ error: "Failed to fetch device info: " + error.message }, 500);
+  }
+});
 export default deviceRoutes;
