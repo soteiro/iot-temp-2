@@ -1,27 +1,27 @@
 ---
 import AppLayout from "@/layouts/AppLayout.astro";
 import TempChart from "@/components/TempChart.tsx";
+import HumChart from "@/components/Humchart.tsx";
 
 const { title } = Astro.props;
 
+const userToken = Astro.cookies.get('sb-access-token')?.value || '';
+
 // Datos de ejemplo con timestamps
-const tempData = [
-  { time: Date.now() - 22 * 60 * 60 * 1000, temperature: 20, sensor: "sensor1" }, // 22h atrás
-  { time: Date.now() - 20 * 60 * 60 * 1000, temperature: 19, sensor: "sensor1" }, // 20h atrás
-  { time: Date.now() - 18 * 60 * 60 * 1000, temperature: 18, sensor: "sensor1" }, // 18h atrás
-  { time: Date.now() - 16 * 60 * 60 * 1000, temperature: 21, sensor: "sensor1" }, // 16h atrás
-  { time: Date.now() - 14 * 60 * 60 * 1000, temperature: 24, sensor: "sensor1" }, // 14h atrás
-  { time: Date.now() - 12 * 60 * 60 * 1000, temperature: 27, sensor: "sensor1" }, // 12h atrás
-  { time: Date.now() - 10 * 60 * 60 * 1000, temperature: 28, sensor: "sensor1" }, // 10h atrás
-  { time: Date.now() - 8 * 60 * 60 * 1000, temperature: 26, sensor: "sensor1" },  // 8h atrás
-  { time: Date.now() - 6 * 60 * 60 * 1000, temperature: 25, sensor: "sensor1" },  // 6h atrás
-  { time: Date.now() - 4 * 60 * 60 * 1000, temperature: 23, sensor: "sensor1" },  // 4h atrás
-  { time: Date.now() - 2 * 60 * 60 * 1000, temperature: 22, sensor: "sensor1" },  // 2h atrás
-  { time: Date.now(), temperature: 21, sensor: "sensor1" },                       // ahora
-];
+const options ={
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${userToken}`
+  },
+};
+const url = import.meta.env.PUBLIC_API_URL + '/data/dcfa31fc-fe01-4c28-833c-85f78b105cb6?time=48';
+
+const res = await fetch(url, options);
+const tempData = await res.json();
 
 // Calcular métricas dinámicas
-const temperatures = tempData.map(d => d.temperature);
+const temperatures = tempData.map((d: { temperature: number }) => d.temperature);
 const avgTemp = Math.round(temperatures.reduce((a, b) => a + b, 0) / temperatures.length);
 const maxTemp = Math.max(...temperatures);
 const minTemp = Math.min(...temperatures);
@@ -138,6 +138,7 @@ const currentTemp = temperatures[temperatures.length - 1];
             </div>
           </div>
         </div>
+        <HumChart data={tempData} client:load />
       </div>
 
       <!-- Alerts -->

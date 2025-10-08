@@ -24,25 +24,25 @@ ChartJS.register(
   Legend
 );
 
-interface TempData {
+interface HumData {
   timestamp: number; // timestamp
-  temperature: number;
+  humidity: number;
   sensor: string;
 }
 
-interface TempChartProps {
-  data: TempData[];
+interface HumChartProps {
+  data: HumData[];
   title?: string;
 }
 
-export default function TempChart({ data, title = "Temperatura (24h)" }: TempChartProps) {
+export default function HumChart({ data, title = "Humedad (24h)" }: HumChartProps) {
   const chartData = {
     datasets: [
       {
-        label: 'Temperatura (°C)',
+        label: 'Humedad (%)',
         data: data.map(d => ({
           x: d.timestamp, // Chart.js usará el timestamp directamente
-          y: d.temperature
+          y: d.humidity
         })),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
