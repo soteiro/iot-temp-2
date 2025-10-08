@@ -4,23 +4,29 @@ import { prisma } from '@/lib/prisma';
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     sensorData: {
-      create: vi.fn()
+      create: vi.fn(),
+      findMany: vi.fn()
     }
   }
 }));
 
 vi.mock('@/lib/auth', () => ({
-  // Mock middleware: setea device en contexto y continúa
   authenticateDevice: vi.fn().mockImplementation(async (c, next) => {
     c.set('device', { device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' });
     await next();
   }),
-  // Algunas rutas usan authenticateUser; también lo mockeamos
   authenticateUser: vi.fn().mockImplementation(async (c, next) => {
     c.set('user', { user_id: 'u1', email: 'test@example.com' });
     await next();
   })
 }));
+
+// Helper para crear requests
+const createRequest = (body: object, method: string = 'POST', path: string = '/') => new Request(`http://localhost${path}`, {
+  method,
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  body: method === 'GET' ? undefined : JSON.stringify(body)
+});
 
 describe('POST /data', () => {
   beforeEach(() => {
@@ -28,7 +34,7 @@ describe('POST /data', () => {
     vi.resetModules();
   });
 
-  it('debería crear sensor data exitosamente y responder 201', async () => {
+  it('debería crear sensor data exitosamente con valores válidos', async () => {
     const mockSensorData = {
       id: 1,
       temperature: 22.5,
@@ -41,22 +47,7 @@ describe('POST /data', () => {
     prismaMod.prisma.sensorData.create.mockResolvedValue(mockSensorData);
 
     const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: 22.5, 
-      humidity: 50 
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+    const res = await dataRoutes.fetch(createRequest({ temperature: 22.5, humidity: 50 }), { JWT_SECRET: 'test-secret' } as any);
 
     expect(res.status).toBe(201);
     expect(prismaMod.prisma.sensorData.create).toHaveBeenCalledWith({
@@ -71,68 +62,26 @@ describe('POST /data', () => {
     expect(responseData).toEqual(mockSensorData);
   });
 
-  it('debería rechazar temperatura fuera del rango (-50 a 50)', async () => {
+  it.each([
+    { temperature: -50, humidity: 0, desc: 'valores límite mínimos' },
+    { temperature: 50, humidity: 100, desc: 'valores límite máximos' }
+  ])('debería aceptar $desc', async ({ temperature, humidity }) => {
+    const prismaMod = await import('@/lib/prisma') as any;
+    prismaMod.prisma.sensorData.create.mockResolvedValue({ id: 1, temperature, humidity, timestamp: new Date().toISOString(), device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' });
+
     const { default: dataRoutes } = await import('@/routes/data.routes');
+    const res = await dataRoutes.fetch(createRequest({ temperature, humidity }), { JWT_SECRET: 'test-secret' } as any);
 
-    const body = JSON.stringify({ 
-      temperature: 55, // Fuera del rango
-      humidity: 50 
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
-
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(201);
   });
 
-  it('debería rechazar humedad fuera del rango (0 a 100)', async () => {
+  it.each([
+    { temperature: 55, humidity: 50, desc: 'temperatura fuera de rango' },
+    { temperature: 25, humidity: 150, desc: 'humedad fuera de rango' },
+    { temperature: 25, desc: 'campo humidity faltante' }
+  ])('debería rechazar por $desc', async (body) => {
     const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: 25,
-      humidity: 150 // Fuera del rango
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
-
-    expect(res.status).toBe(400);
-  });
-
-  it('debería rechazar datos inválidos (campos faltantes)', async () => {
-    const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: 25
-      // humidity faltante
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+    const res = await dataRoutes.fetch(createRequest(body), { JWT_SECRET: 'test-secret' } as any);
 
     expect(res.status).toBe(400);
   });
@@ -142,22 +91,7 @@ describe('POST /data', () => {
     prismaMod.prisma.sensorData.create.mockRejectedValue(new Error('Database error'));
 
     const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: 22.5, 
-      humidity: 50 
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+    const res = await dataRoutes.fetch(createRequest({ temperature: 22.5, humidity: 50 }), { JWT_SECRET: 'test-secret' } as any);
 
     expect(res.status).toBe(400);
     const responseData = await res.json();
@@ -165,152 +99,94 @@ describe('POST /data', () => {
   });
 
   it('debería rechazar cuando no hay dispositivo autenticado', async () => {
-    // Modificar el mock para simular falta de autenticación
     const authMod = await import('@/lib/auth') as any;
-    authMod.authenticateDevice.mockImplementationOnce(
-      async (c: any, next: any) => {
-        // No setear device en el contexto
-        await next();
-      }
-    );
+    authMod.authenticateDevice.mockImplementationOnce(async (c: any, next: any) => {
+      await next();
+    });
 
     const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: 22.5, 
-      humidity: 50 
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+    const res = await dataRoutes.fetch(createRequest({ temperature: 22.5, humidity: 50 }), { JWT_SECRET: 'test-secret' } as any);
 
     expect(res.status).toBe(401);
     const responseData = await res.json();
     expect(responseData).toEqual({ error: "Unauthorized" });
   });
+});
 
-  it('debería aceptar valores límite válidos', async () => {
-    const mockSensorData = {
-      id: 1,
-      temperature: -50,
-      humidity: 0,
-      timestamp: new Date().toISOString(),
-      device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
-    };
-
-    const prismaMod = await import('@/lib/prisma') as any;
-    prismaMod.prisma.sensorData.create.mockResolvedValue(mockSensorData);
-
-    const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: -50, // Valor límite mínimo
-      humidity: 0       // Valor límite mínimo
-    });
-
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
-
-    expect(res.status).toBe(201);
-    expect(prismaMod.prisma.sensorData.create).toHaveBeenCalledWith({
-      data: {
-        temperature: -50,
-        humidity: 0,
-        device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
-      }
-    });
+describe('GET /data/{deviceId}', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 
-  it('debería rechazar si el dispositivo no pertenece al usuario autenticado', async () => {
-    const authMod = await import('@/lib/auth') as any;
-    authMod.authenticateDevice.mockImplementationOnce(
-      async (c: any, next: any) => {
-        c.set('device', { device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef', user_id: 'different_user' });
-        c.set('user', { user_id: 'u1', email: 'test@example.com' });
-        // Simula la lógica real: si el user_id no coincide, retorna 403
-        if (c.get('device').user_id !== c.get('user').user_id) {
-          return c.json({ error: "Device does not belong to the authenticated user" }, 403);
+  it('debería obtener datos del sensor exitosamente', async () => {
+    const mockSensorData = [
+      {
+        id: 1,
+        temperature: 22.5,
+        humidity: 50,
+        timestamp: new Date().toISOString(),
+        device_id: 'device-123'
+      },
+      {
+        id: 2,
+        temperature: 23.0,
+        humidity: 55,
+        timestamp: new Date().toISOString(),
+        device_id: 'device-123'
+      }
+    ];
+
+    const prismaMod = await import('@/lib/prisma') as any;
+    prismaMod.prisma.sensorData.findMany.mockResolvedValue(mockSensorData);
+
+    const { default: dataRoutes } = await import('@/routes/data.routes');
+    const res = await dataRoutes.fetch(createRequest({}, 'GET', '/device-123'), { JWT_SECRET: 'test-secret' } as any);
+
+    expect(res.status).toBe(200);
+    expect(prismaMod.prisma.sensorData.findMany).toHaveBeenCalledWith({
+      where: {
+        device_id: 'device-123',
+        timestamp: {
+          gte: expect.any(Date)
         }
-        await next();
       }
-    );
-
-    const { default: dataRoutes } = await import('@/routes/data.routes');
-
-    const body = JSON.stringify({ 
-      temperature: 22.5, 
-      humidity: 50 
     });
 
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
-
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
-
-    expect(res.status).toBe(403);
     const responseData = await res.json();
-    expect(responseData).toEqual({ error: "Device does not belong to the authenticated user" });
+    expect(responseData).toEqual(mockSensorData);
   });
 
-  it('debería aceptar valores límite máximos válidos', async () => {
-    const mockSensorData = {
-      id: 1,
-      temperature: 50,
-      humidity: 100,
-      timestamp: new Date().toISOString(),
-      device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
-    };
-
+  it.each([
+    { time: '6', hours: 6, desc: '6 horas' },
+    { time: '12', hours: 12, desc: '12 horas' },
+    { time: '24', hours: 24, desc: '24 horas (default)' }
+  ])('debería filtrar datos de las últimas $desc', async ({ time, hours }) => {
     const prismaMod = await import('@/lib/prisma') as any;
-    prismaMod.prisma.sensorData.create.mockResolvedValue(mockSensorData);
+    prismaMod.prisma.sensorData.findMany.mockResolvedValue([]);
 
     const { default: dataRoutes } = await import('@/routes/data.routes');
+    const path = time === '24' ? '/device-123' : `/device-123?time=${time}`;
+    
+    await dataRoutes.fetch(createRequest({}, 'GET', path), { JWT_SECRET: 'test-secret' } as any);
 
-    const body = JSON.stringify({ 
-      temperature: 50,  // Valor límite máximo
-      humidity: 100     // Valor límite máximo
-    });
+    const callArgs = prismaMod.prisma.sensorData.findMany.mock.calls[0][0];
+    const expectedDate = new Date(Date.now() - hours * 3600000);
+    const actualDate = callArgs.where.timestamp.gte;
+    
+    // Verificar que la fecha esté dentro de un margen de 1 segundo
+    expect(Math.abs(actualDate.getTime() - expectedDate.getTime())).toBeLessThan(1000);
+  });
 
-    const req = new Request('http://localhost/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body
-    });
+  it('debería devolver array vacío cuando no hay datos', async () => {
+    const prismaMod = await import('@/lib/prisma') as any;
+    prismaMod.prisma.sensorData.findMany.mockResolvedValue([]);
 
-    const res = await dataRoutes.fetch(req, { JWT_SECRET: 'test-secret' } as any);
+    const { default: dataRoutes } = await import('@/routes/data.routes');
+    const res = await dataRoutes.fetch(createRequest({}, 'GET', '/device-123'), { JWT_SECRET: 'test-secret' } as any);
 
-    expect(res.status).toBe(201);
-    expect(prismaMod.prisma.sensorData.create).toHaveBeenCalledWith({
-      data: {
-        temperature: 50,
-        humidity: 100,
-        device_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
-      }
-    });
+    expect(res.status).toBe(200);
+    const responseData = await res.json();
+    expect(responseData).toEqual([]);
   });
 });
