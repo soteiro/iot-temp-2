@@ -23,9 +23,9 @@ const tempData = await res.json();
 // Calcular métricas dinámicas
 const temperatures = tempData.map((d: { temperature: number }) => d.temperature);
 const avgTemp = Math.round(temperatures.reduce((a, b) => a + b, 0) / temperatures.length);
-const maxTemp = Math.max(...temperatures);
-const minTemp = Math.min(...temperatures);
-const currentTemp = temperatures[temperatures.length - 1];
+const maxTemp = Math.max(...temperatures).toFixed(2);
+const minTemp = Math.min(...temperatures).toFixed(2);
+const currentTemp = temperatures[temperatures.length - 1].toFixed(2);
 ---
 
 <AppLayout title="Dashboard">
