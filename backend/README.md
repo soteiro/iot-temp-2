@@ -49,10 +49,10 @@ La documentación de la API se genera automáticamente con `hono-openapi` y se p
 
 ### Rutas Principales
 
--   `/users`: Gestión de usuarios.
--   `/auth`: Autenticación de usuarios.
--   `/devices`: Gestión de dispositivos.
--   `/data`: Gestión de los datos de los sensores.
+- `/users`: Gestión de usuarios.
+- `/auth`: Autenticación de usuarios.
+- `/devices`: Gestión de dispositivos.
+- `/data`: Gestión de los datos de los sensores.
 
 ## Esquema de la Base de Datos
 
@@ -60,9 +60,9 @@ El esquema de la base de datos está definido en el archivo `prisma/schema.prism
 
 ### Modelos
 
--   **User**: Representa a un usuario de la aplicación.
--   **Device**: Representa un dispositivo IoT.
--   **SensorData**: Representa una lectura de datos de un sensor de un dispositivo.
+- **User**: Representa a un usuario de la aplicación.
+- **Device**: Representa un dispositivo IoT.
+- **SensorData**: Representa una lectura de datos de un sensor de un dispositivo.
 
 ## Testing
 
@@ -70,25 +70,25 @@ El proyecto utiliza [Vitest](https://vitest.dev/) para las pruebas. Los tests se
 
 ### Comandos para Pruebas
 
--   Ejecutar todos los tests:
+- Ejecutar todos los tests:
 
     ```bash
     pnpm test
     ```
 
--   Ejecutar los tests en modo "watch":
+- Ejecutar los tests en modo "watch":
 
     ```bash
     pnpm test:watch
     ```
 
--   Calcular la cobertura de los tests:
+- Calcular la cobertura de los tests:
 
     ```bash
     pnpm test:coverage
     ```
 
--   Ejecutar los tests de integración:
+- Ejecutar los tests de integración:
 
     ```bash
     pnpm test:integration
