@@ -98,7 +98,7 @@ pnpm dev
 ```
 La aplicación web estará disponible en `http://localhost:4321`.
 
-## Visualización del Proyecto
+<!-- ## Visualización del Proyecto -->
 
 <!-- 
   Añade aquí capturas de pantalla de la aplicación para hacer el README más atractivo.
