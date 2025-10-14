@@ -50,7 +50,7 @@ export default function HumChart({ data, title = "Humedad (24h)" }: HumChartProp
       },
     ],
   };
-  console.log(chartData);
+  
 
   const options = {
     responsive: true,

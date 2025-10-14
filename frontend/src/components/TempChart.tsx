@@ -50,7 +50,7 @@ export default function TempChart({ data, title = "Temperatura (24h)" }: TempCha
       },
     ],
   };
-  console.log(chartData);
+  
 
   const options = {
     responsive: true,

@@ -15,7 +15,7 @@ const options ={
     'Authorization': `Bearer ${userToken}`
   },
 };
-const url = import.meta.env.PUBLIC_API_URL + '/data/dcfa31fc-fe01-4c28-833c-85f78b105cb6?time=48';
+const url = import.meta.env.PUBLIC_API_URL + '/data/dcfa31fc-fe01-4c28-833c-85f78b105cb6?time=12';
 
 const res = await fetch(url, options);
 const tempData = await res.json();
