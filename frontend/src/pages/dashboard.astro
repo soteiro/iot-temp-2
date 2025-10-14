@@ -2,6 +2,8 @@
 import AppLayout from "@/layouts/AppLayout.astro";
 import TempChart from "@/components/TempChart.tsx";
 import HumChart from "@/components/Humchart.tsx";
+import StatsBox from "@/components/dashboard/StatsBox.astro";
+
 
 const { title } = Astro.props;
 
@@ -15,7 +17,7 @@ const options ={
     'Authorization': `Bearer ${userToken}`
   },
 };
-const url = import.meta.env.PUBLIC_API_URL + '/data/dcfa31fc-fe01-4c28-833c-85f78b105cb6?time=12';
+const url = import.meta.env.PUBLIC_API_URL + '/data/dcfa31fc-fe01-4c28-833c-85f78b105cb6?time=24';
 
 const res = await fetch(url, options);
 const tempData = await res.json();
@@ -26,12 +28,19 @@ const avgTemp = Math.round(temperatures.reduce((a : number, b: number) => a + b,
 const maxTemp = Math.max(...temperatures).toFixed(2);
 const minTemp = Math.min(...temperatures).toFixed(2);
 const currentTemp = temperatures[temperatures.length - 1].toFixed(2);
+
+const humidity = tempData.map((d: { humidity: number }) => d.humidity);
+const avgHum = Math.round(humidity.reduce((a : number, b: number) =>
+  a + b, 0) / humidity.length);
+const maxHum = Math.max(...humidity).toFixed(2);
+const minHum = Math.min(...humidity).toFixed(2);
+const currentHum = humidity[humidity.length - 1].toFixed(2);
 ---
 
 <AppLayout title="Dashboard">
   <div class="min-h-screen bg-base-200 p-4">
     <!-- Header -->
-    <div class="mb-8">
+    <div class="mb-5">
       <div class="flex items-center gap-3 mb-2">
         <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
           <svg class="w-6 h-6 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,60 +61,7 @@ const currentTemp = temperatures[temperatures.length - 1].toFixed(2);
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <!-- Temperatura Actual -->
-      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
-        <div class="stat-figure text-primary">
-          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-        </div>
-        <div class="stat-title text-base-content/70">Temperatura Actual</div>
-        <div class="stat-value text-primary">{currentTemp}°C</div>
-        <div class="stat-desc text-success">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-          </svg>
-          Normal
-        </div>
-      </div>
-
-      <!-- Promedio -->
-      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
-        <div class="stat-figure text-secondary">
-          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
-          </svg>
-        </div>
-        <div class="stat-title text-base-content/70">Promedio 24h</div>
-        <div class="stat-value text-secondary">{avgTemp}°C</div>
-        <div class="stat-desc text-base-content/60">Últimas 24 horas</div>
-      </div>
-
-      <!-- Máxima -->
-      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
-        <div class="stat-figure text-error">
-          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-          </svg>
-        </div>
-        <div class="stat-title text-base-content/70">Máxima</div>
-        <div class="stat-value text-error">{maxTemp}°C</div>
-        <div class="stat-desc text-base-content/60">Pico del día</div>
-      </div>
-
-      <!-- Mínima -->
-      <div class="stat bg-base-100 shadow-lg rounded-2xl border border-base-300">
-        <div class="stat-figure text-info">
-          <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
-          </svg>
-        </div>
-        <div class="stat-title text-base-content/70">Mínima</div>
-        <div class="stat-value text-info">{minTemp}°C</div>
-        <div class="stat-desc text-base-content/60">Mínimo del día</div>
-      </div>
-    </div>
+    <StatsBox tempData={tempData} />
 
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

@@ -1,0 +1,85 @@
+---
+import { StatCard } from "@/components/dashboard/StatCard";
+
+
+interface Props {
+  tempData: { temperature: number; humidity: number; timestamp: string }[];
+}
+const { tempData } = Astro.props;
+
+const temperatures = tempData.map(
+  (d: { temperature: number }) => d.temperature
+);
+const avgTemp = Math.round(
+  temperatures.reduce((a: number, b: number) => a + b, 0) / temperatures.length
+);
+const maxTemp = Math.max(...temperatures).toFixed(2);
+const minTemp = Math.min(...temperatures).toFixed(2);
+const currentTemp = temperatures[temperatures.length - 1].toFixed(2);
+
+const humidity = tempData.map((d: { humidity: number }) => d.humidity);
+const avgHum = Math.round(
+  humidity.reduce((a: number, b: number) => a + b, 0) / humidity.length
+);
+const maxHum = Math.max(...humidity).toFixed(2);
+const minHum = Math.min(...humidity).toFixed(2);
+const currentHum = humidity[humidity.length - 1].toFixed(2);
+---
+
+<!-- TODO: mejorar los iconos, poner algunos mas bonitos -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+
+  <StatCard
+    title="Temperatura Promedio"
+    value={`${avgTemp}°C`}
+    icon="/statsIcons/thermometer.svg"
+  color="primary"
+  />
+  <StatCard
+    title="Temperatura Máxima"
+    value={`${maxTemp}°C`}
+    icon="/statsIcons/arrow-up.svg"
+  color="primary"
+  />
+  <StatCard
+    title="Temperatura Mínima"
+    value={`${minTemp}°C`}
+    icon="/statsIcons/arrow-down.svg"
+  color="primary"
+  />
+  <StatCard
+    title="Temperatura Actual"
+    value={`${currentTemp}°C`}
+    icon="/statsIcons/thermometer.svg"
+  color="primary"
+  />
+</section>
+<div class="divider my-0"></div>
+
+
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 mt-4">
+  <StatCard
+    title="Humedad Promedio"
+    value={`${avgHum}%`}
+    icon="/statsIcons/humidity.svg"
+  color="info"
+  />
+  <StatCard
+    title="Humedad Máxima"
+    value={`${maxHum}%`}
+    icon="/statsIcons/arrow-up.svg"
+  color="info"
+  />
+  <StatCard
+    title="Humedad Mínima"
+    value={`${minHum}%`}
+    icon="/statsIcons/arrow-down.svg"
+  color="info"
+  />
+  <StatCard
+    title="Humedad Actual"
+    value={`${currentHum}%`}
+    icon="/statsIcons/humidity.svg"
+  color="info"
+  />
+</section>
