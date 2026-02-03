@@ -20,7 +20,7 @@
     "argon2": "^0.44.0",
     "bcryptjs": "^3.0.2",
     "eslint": "^9.36.0",
-    "hono": "^4.9.7",
+    "hono": "^4.11.7",
     "hono-openapi": "^1.0.8",
     "prettier": "^3.6.2",
     "toucan-js": "^4.1.1",
