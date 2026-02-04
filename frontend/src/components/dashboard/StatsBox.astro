@@ -7,23 +7,48 @@ interface Props {
 }
 const { tempData } = Astro.props;
 
-const temperatures = tempData.map(
-  (d: { temperature: number }) => d.temperature
-);
-const avgTemp = Math.round(
-  temperatures.reduce((a: number, b: number) => a + b, 0) / temperatures.length
-);
-const maxTemp = Math.max(...temperatures).toFixed(2);
-const minTemp = Math.min(...temperatures).toFixed(2);
-const currentTemp = temperatures[temperatures.length - 1].toFixed(2);
+let temperatures = [];
+let avgTemp = 0;
+let maxTemp = '0.00';
+let minTemp = '0.00';
+let currentTemp = '0.00';
+let humidity = [];
+let avgHum = 0;
+let maxHum = '0.00';
+let minHum = '0.00';
+let currentHum = '0.00';
 
-const humidity = tempData.map((d: { humidity: number }) => d.humidity);
-const avgHum = Math.round(
-  humidity.reduce((a: number, b: number) => a + b, 0) / humidity.length
-);
-const maxHum = Math.max(...humidity).toFixed(2);
-const minHum = Math.min(...humidity).toFixed(2);
-const currentHum = humidity[humidity.length - 1].toFixed(2);
+try {
+  if (tempData && Array.isArray(tempData) && tempData.length > 0) {
+    temperatures = tempData.map(
+      (d: { temperature: number }) => d.temperature
+    ).filter((t) => t != null && !isNaN(t));
+    
+    if (temperatures.length > 0) {
+      avgTemp = Math.round(
+        temperatures.reduce((a: number, b: number) => a + b, 0) / temperatures.length
+      );
+      maxTemp = Math.max(...temperatures).toFixed(2);
+      minTemp = Math.min(...temperatures).toFixed(2);
+      const lastTemp = temperatures[temperatures.length - 1];
+      currentTemp = lastTemp != null ? lastTemp.toFixed(2) : '0.00';
+    }
+
+    humidity = tempData.map((d: { humidity: number }) => d.humidity).filter((h) => h != null && !isNaN(h));
+    
+    if (humidity.length > 0) {
+      avgHum = Math.round(
+        humidity.reduce((a: number, b: number) => a + b, 0) / humidity.length
+      );
+      maxHum = Math.max(...humidity).toFixed(2);
+      minHum = Math.min(...humidity).toFixed(2);
+      const lastHum = humidity[humidity.length - 1];
+      currentHum = lastHum != null ? lastHum.toFixed(2) : '0.00';
+    }
+  }
+} catch (error) {
+  console.error('Error calculando métricas en StatsBox:', error);
+}
 ---
 
 <!-- TODO: mejorar los iconos, poner algunos mas bonitos -->

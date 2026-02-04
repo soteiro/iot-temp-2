@@ -21,20 +21,6 @@ const url = import.meta.env.PUBLIC_API_URL + '/data/dcfa31fc-fe01-4c28-833c-85f7
 
 const res = await fetch(url, options);
 const tempData = await res.json();
-
-// Calcular métricas dinámicas
-const temperatures = tempData.map((d: { temperature: number }) => d.temperature);
-const avgTemp = Math.round(temperatures.reduce((a : number, b: number) => a + b, 0) / temperatures.length);
-const maxTemp = Math.max(...temperatures).toFixed(2);
-const minTemp = Math.min(...temperatures).toFixed(2);
-const currentTemp = temperatures[temperatures.length - 1].toFixed(2);
-
-const humidity = tempData.map((d: { humidity: number }) => d.humidity);
-const avgHum = Math.round(humidity.reduce((a : number, b: number) =>
-  a + b, 0) / humidity.length);
-const maxHum = Math.max(...humidity).toFixed(2);
-const minHum = Math.min(...humidity).toFixed(2);
-const currentHum = humidity[humidity.length - 1].toFixed(2);
 ---
 
 <AppLayout title="Dashboard">
