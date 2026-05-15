@@ -5807,8 +5807,8 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vite@6.3.6:
-    resolution: {integrity: sha512-0msEVHJEScQbhkbVTb/4iHZdJ6SXp/AvxL2sjwYQFfBqleHtnCqv1J3sa9zbWz/6kW1m9Tfzn92vW+kZ1WV6QA==}
+  vite@6.4.2:
+    resolution: {integrity: sha512-2N/55r4JDJ4gdrCvGgINMy+HH3iRpNIz8K6SFwVsA+JbQScLiC+clmAxBgwiSPgcG9U15QmvqCGWzMbqda5zGQ==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -6110,12 +6110,12 @@ snapshots:
       '@astrojs/underscore-redirects': 1.0.0
       '@netlify/blobs': 10.0.11
       '@netlify/functions': 4.2.6(rollup@4.60.4)
-      '@netlify/vite-plugin': 2.6.0(rollup@4.60.4)(vite@6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))
+      '@netlify/vite-plugin': 2.6.0(rollup@4.60.4)(vite@6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))
       '@vercel/nft': 0.30.2(rollup@4.60.4)
       astro: 6.1.10(@netlify/blobs@10.7.0)(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(rollup@4.60.4)(typescript@5.9.2)(yaml@2.8.1)
       esbuild: 0.25.9
       tinyglobby: 0.2.15
-      vite: 6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
+      vite: 6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6160,11 +6160,11 @@ snapshots:
     dependencies:
       '@types/react': 19.1.15
       '@types/react-dom': 19.1.9(@types/react@19.1.15)
-      '@vitejs/plugin-react': 4.7.0(vite@6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))
+      '@vitejs/plugin-react': 4.7.0(vite@6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
       ultrahtml: 1.6.0
-      vite: 6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
+      vite: 6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -7690,12 +7690,12 @@ snapshots:
 
   '@netlify/types@2.6.0': {}
 
-  '@netlify/vite-plugin@2.6.0(rollup@4.60.4)(vite@6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))':
+  '@netlify/vite-plugin@2.6.0(rollup@4.60.4)(vite@6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))':
     dependencies:
       '@netlify/dev': 4.5.11(rollup@4.60.4)
       '@netlify/dev-utils': 4.2.0
       dedent: 1.7.0
-      vite: 6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
+      vite: 6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -8513,7 +8513,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vitejs/plugin-react@4.7.0(vite@6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))':
+  '@vitejs/plugin-react@4.7.0(vite@6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1))':
     dependencies:
       '@babel/core': 7.28.4
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.4)
@@ -8521,7 +8521,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
+      vite: 6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -12716,7 +12716,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite@6.3.6(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1):
+  vite@6.4.2(@types/node@24.4.0)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.9
       fdir: 6.5.0(picomatch@4.0.4)
